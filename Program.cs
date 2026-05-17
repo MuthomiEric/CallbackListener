@@ -1,6 +1,8 @@
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting.Systemd;
 using Microsoft.Extensions.Hosting.WindowsServices;
 
 var options = new WebApplicationOptions
@@ -11,13 +13,21 @@ var options = new WebApplicationOptions
 
 var builder = WebApplication.CreateBuilder(options);
 
-builder.Host.UseWindowsService();
+if (OperatingSystem.IsWindows())
+{
+    builder.Host.UseWindowsService();
+}
+else if (OperatingSystem.IsLinux())
+{
+    builder.Host.UseSystemd();
+}
 
 builder.WebHost.UseUrls("http://0.0.0.0:5055");
 
 var app = builder.Build();
 
-var sockets = new List<WebSocket>();
+var sockets =
+    new ConcurrentDictionary<Guid, WebSocket>();
 
 app.UseWebSockets();
 
@@ -243,9 +253,13 @@ app.Map("/ws", async context =>
     var socket =
         await context.WebSockets.AcceptWebSocketAsync();
 
-    sockets.Add(socket);
+    var socketId =
+        Guid.NewGuid();
 
-    var buffer = new byte[1024];
+    sockets.TryAdd(socketId, socket);
+
+    var buffer =
+        new byte[1024];
 
     try
     {
@@ -268,18 +282,24 @@ app.Map("/ws", async context =>
     }
     finally
     {
-        sockets.Remove(socket);
+        sockets.TryRemove(socketId, out _);
 
         try
         {
-            await socket.CloseAsync(
-                WebSocketCloseStatus.NormalClosure,
-                "Closed",
-                CancellationToken.None);
+            if (socket.State == WebSocketState.Open ||
+                socket.State == WebSocketState.CloseReceived)
+            {
+                await socket.CloseAsync(
+                    WebSocketCloseStatus.NormalClosure,
+                    "Closed",
+                    CancellationToken.None);
+            }
         }
         catch
         {
         }
+
+        socket.Dispose();
     }
 });
 
@@ -306,12 +326,7 @@ app.MapPost("/callback", async context =>
     var payload = new
     {
         timestamp = DateTime.UtcNow,
-        method = context.Request.Method,
-        path = context.Request.Path,
         query = context.Request.Query.ToDictionary(
-            x => x.Key,
-            x => x.Value.ToString()),
-        headers = context.Request.Headers.ToDictionary(
             x => x.Key,
             x => x.Value.ToString()),
         body = parsedBody
@@ -329,15 +344,21 @@ app.MapPost("/callback", async context =>
         Encoding.UTF8.GetBytes(json);
 
     var deadSockets =
-        new List<WebSocket>();
+        new List<Guid>();
 
-    foreach (var socket in sockets.ToList())
+    foreach (var item in sockets)
     {
+        var socketId =
+            item.Key;
+
+        var socket =
+            item.Value;
+
         try
         {
             if (socket.State != WebSocketState.Open)
             {
-                deadSockets.Add(socket);
+                deadSockets.Add(socketId);
                 continue;
             }
 
@@ -349,13 +370,22 @@ app.MapPost("/callback", async context =>
         }
         catch
         {
-            deadSockets.Add(socket);
+            deadSockets.Add(socketId);
         }
     }
 
-    foreach (var deadSocket in deadSockets)
+    foreach (var deadSocketId in deadSockets)
     {
-        sockets.Remove(deadSocket);
+        if (sockets.TryRemove(deadSocketId, out var socket))
+        {
+            try
+            {
+                socket.Dispose();
+            }
+            catch
+            {
+            }
+        }
     }
 
     await context.Response.WriteAsJsonAsync(new
@@ -368,6 +398,11 @@ app.MapPost("/callback", async context =>
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     Console.WriteLine("Callback Listener started successfully");
+});
+
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    Console.WriteLine("Application stopping...");
 });
 
 app.Run();
