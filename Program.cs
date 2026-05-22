@@ -303,20 +303,18 @@ app.Map("/ws", async context =>
     }
 });
 
-app.MapPost("/callback", async context =>
+app.MapPost("/callback/{**path}", async context =>
 {
-    using var reader =
-        new StreamReader(context.Request.Body);
+    var path = context.Request.RouteValues["path"]?.ToString();
 
-    var body =
-        await reader.ReadToEndAsync();
+    using var reader = new StreamReader(context.Request.Body);
+    var body = await reader.ReadToEndAsync();
 
     object parsedBody;
 
     try
     {
-        parsedBody =
-            JsonSerializer.Deserialize<object>(body)!;
+        parsedBody = JsonSerializer.Deserialize<object>(body)!;
     }
     catch
     {
@@ -326,71 +324,40 @@ app.MapPost("/callback", async context =>
     var payload = new
     {
         timestamp = DateTime.UtcNow,
-        query = context.Request.Query.ToDictionary(
-            x => x.Key,
-            x => x.Value.ToString()),
+        path,
+        query = context.Request.Query.ToDictionary(x => x.Key, x => x.Value.ToString()),
         body = parsedBody
     };
 
-    var json =
-        JsonSerializer.Serialize(
-            payload,
-            new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-
-    var bytes =
-        Encoding.UTF8.GetBytes(json);
-
-    var deadSockets =
-        new List<Guid>();
-
-    foreach (var item in sockets)
+    var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
     {
-        var socketId =
-            item.Key;
+        WriteIndented = true
+    });
 
-        var socket =
-            item.Value;
+    var bytes = Encoding.UTF8.GetBytes(json);
 
+    foreach (var socket in sockets)
+    {
         try
         {
-            if (socket.State != WebSocketState.Open)
+            if (socket.Value.State == WebSocketState.Open)
             {
-                deadSockets.Add(socketId);
-                continue;
+                await socket.Value.SendAsync(
+                    bytes,
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None);
             }
-
-            await socket.SendAsync(
-                bytes,
-                WebSocketMessageType.Text,
-                true,
-                CancellationToken.None);
         }
         catch
         {
-            deadSockets.Add(socketId);
-        }
-    }
-
-    foreach (var deadSocketId in deadSockets)
-    {
-        if (sockets.TryRemove(deadSocketId, out var socket))
-        {
-            try
-            {
-                socket.Dispose();
-            }
-            catch
-            {
-            }
         }
     }
 
     await context.Response.WriteAsJsonAsync(new
     {
         success = true,
+        receivedPath = path,
         connectedClients = sockets.Count
     });
 });
