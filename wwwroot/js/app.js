@@ -37,8 +37,8 @@ document.getElementById("signout-btn")?.addEventListener("click", async () => {
 // ── State ──────────────────────────────────────────────────────────────────────
 let allCallbacks = [];
 let apps         = [];                 // registered apps from /api/apps
-let currentUserId = null;             // logged-in user's ID — used to look up agent status
-const agents     = new Map();          // userId → AgentInfo (one agent per user)
+let currentUserId = null;
+const agents     = new Map();          // clientId → AgentInfo
 const expandedIds  = new Set();        // persist expand state across re-renders
 let selectedSlug   = null;             // null = all apps
 const unreadCounts = new Map();        // slug → count of unseen callbacks
@@ -256,8 +256,8 @@ function renderSidebar() {
     const countEl   = document.getElementById("agent-count");
     container.innerHTML = "";
 
-    const agentOnline = agents.get(currentUserId)?.isOnline ?? false;
-    countEl.textContent = `${apps.length} · ${agentOnline ? "agent live" : "offline"}`;
+    const anyOnline = apps.some(a => a.clientId && agents.get(a.clientId)?.isOnline);
+    countEl.textContent = `${apps.length} · ${anyOnline ? "agent live" : "offline"}`;
 
     // "All apps" row
     const allEl = document.createElement("div");
@@ -270,7 +270,7 @@ function renderSidebar() {
 
     apps.forEach(app => {
         const isSelected = app.slug === selectedSlug;
-        const isOnline   = agents.get(currentUserId)?.isOnline ?? false;
+        const isOnline   = app.clientId ? (agents.get(app.clientId)?.isOnline ?? false) : false;
         const unread     = unreadCounts.get(app.slug) || 0;
 
         const el = document.createElement("div");

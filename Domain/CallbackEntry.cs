@@ -34,7 +34,7 @@ public sealed record CallbackEntry
 /// Forwarding target attached by the server from the registered listener config.
 /// The agent constructs: {Scheme}://localhost:{Port}{BasePath}{SubPath}
 /// </summary>
-public sealed record RelayTarget(string Scheme, int Port, string BasePath);
+public sealed record RelayTarget(string Scheme, int Port, string BasePath, string? ClientId = null);
 
 public enum CallbackStatus
 {

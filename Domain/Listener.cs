@@ -10,8 +10,9 @@ public sealed class Listener
     public string Scheme { get; set; } = "http";
     public int Port { get; set; } = 80;
     public string BasePath { get; set; } = "/";
+    public Guid? ClientId { get; set; }
+    public Client? Client { get; set; }
     public DeliveryMode Mode { get; set; } = DeliveryMode.Both;
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-    public List<ApiKey> ApiKeys { get; set; } = [];
 }

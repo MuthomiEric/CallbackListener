@@ -30,24 +30,24 @@ public static class AdminEndpoints
 
             var users = await db.Users
                 .Include(u => u.Listeners)
-                .Include(u => u.ApiKeys)
+                .Include(u => u.Clients)
                 .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
 
             var rows = users.Select(u =>
             {
-                var isOnline = registry.IsOnline(u.Id);
+                var isOnline = u.Clients.Any(c => registry.IsOnline(c.Id.ToString()));
                 var lastCb   = store.GetRecent(1, u.Id).FirstOrDefault();
                 return new
                 {
-                    id           = u.Id,
-                    email        = u.Email,
-                    displayName  = u.DisplayName,
-                    createdAt    = u.CreatedAt,
-                    appCount     = u.Listeners.Count,
-                    keyCount     = u.ApiKeys.Count,
+                    id            = u.Id,
+                    email         = u.Email,
+                    displayName   = u.DisplayName,
+                    createdAt     = u.CreatedAt,
+                    appCount      = u.Listeners.Count,
+                    clientCount   = u.Clients.Count,
                     isOnline,
-                    lastCallback = lastCb?.Timestamp,
+                    lastCallback  = lastCb?.Timestamp,
                 };
             });
 

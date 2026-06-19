@@ -142,7 +142,7 @@ app.MapHub<AgentHub>("/hubs/agents");
 // ── Endpoints ─────────────────────────────────────────────────────────────────
 app.MapAuthEndpoints();
 app.MapListenerEndpoints();
-app.MapKeyEndpoints();
+app.MapClientEndpoints();
 app.MapCallbackEndpoints();
 app.MapApiEndpoints();
 app.MapAdminEndpoints();

@@ -22,7 +22,6 @@ public static class ListenerEndpoints
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync();
 
-            var agentOnline = registry.IsOnline(user.Id);
             return Results.Ok(rows.Select(l => new
             {
                 id        = l.Id,
@@ -32,7 +31,8 @@ public static class ListenerEndpoints
                 port      = l.Port,
                 basePath  = l.BasePath,
                 mode      = (int)l.Mode,
-                isActive  = agentOnline,
+                clientId  = l.ClientId,
+                isActive  = l.ClientId.HasValue && registry.IsOnline(l.ClientId.Value.ToString()),
                 createdAt = l.CreatedAt,
             }));
         });
@@ -49,6 +49,13 @@ public static class ListenerEndpoints
             if (await db.Listeners.AnyAsync(l => l.Slug == slug))
                 return Results.Conflict(new { error = "Slug already taken" });
 
+            // Validate client belongs to this user
+            if (req.ClientId.HasValue)
+            {
+                var ownsClient = await db.Clients.AnyAsync(c => c.Id == req.ClientId && c.UserId == user.Id);
+                if (!ownsClient) return Results.BadRequest(new { error = "Invalid client" });
+            }
+
             var listener = new Listener
             {
                 UserId   = user.Id,
@@ -57,7 +64,8 @@ public static class ListenerEndpoints
                 Scheme   = req.Scheme == "https" ? "https" : "http",
                 Port     = req.Port,
                 BasePath = string.IsNullOrWhiteSpace(req.BasePath) ? "/" : req.BasePath.Trim(),
-                Mode     = Enum.IsDefined(typeof(DeliveryMode), req.Mode) ? (DeliveryMode)req.Mode : DeliveryMode.Both,
+                Mode     = Enum.IsDefined(typeof(DeliveryMode), req.Mode) ? (DeliveryMode)req.Mode : DeliveryMode.WebOnly,
+                ClientId = req.ClientId,
             };
 
             db.Listeners.Add(listener);
@@ -70,7 +78,9 @@ public static class ListenerEndpoints
                 label    = listener.Label,
                 scheme   = listener.Scheme,
                 port     = listener.Port,
+                basePath = listener.BasePath,
                 mode     = (int)listener.Mode,
+                clientId = listener.ClientId,
                 isActive = false,
             });
         });
@@ -92,6 +102,21 @@ public static class ListenerEndpoints
             if (req.BasePath is not null)
                 listener.BasePath = string.IsNullOrWhiteSpace(req.BasePath) ? "/" : req.BasePath.Trim();
 
+            // Update client link (null = unlink)
+            if (req.ClientId is not null)
+            {
+                if (req.ClientId == Guid.Empty)
+                {
+                    listener.ClientId = null;
+                }
+                else
+                {
+                    var ownsClient = await db.Clients.AnyAsync(c => c.Id == req.ClientId && c.UserId == user.Id);
+                    if (!ownsClient) return Results.BadRequest(new { error = "Invalid client" });
+                    listener.ClientId = req.ClientId;
+                }
+            }
+
             await db.SaveChangesAsync();
             return Results.Ok(new
             {
@@ -102,6 +127,7 @@ public static class ListenerEndpoints
                 port     = listener.Port,
                 basePath = listener.BasePath,
                 mode     = (int)listener.Mode,
+                clientId = listener.ClientId,
             });
         });
 
@@ -136,6 +162,6 @@ public static class ListenerEndpoints
     }
 }
 
-record CreateListenerRequest(string Slug, string Label, string Scheme, int Port, string? BasePath, int Mode = 2);
-record UpdateListenerRequest(string? Label, string? Scheme, int? Port, string? BasePath);
+record CreateListenerRequest(string Slug, string Label, string Scheme, int Port, string? BasePath, int Mode = 0, Guid? ClientId = null);
+record UpdateListenerRequest(string? Label, string? Scheme, int? Port, string? BasePath, Guid? ClientId = null);
 record ModeRequest(int Mode);

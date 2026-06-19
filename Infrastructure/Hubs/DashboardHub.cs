@@ -49,13 +49,13 @@ public sealed class DashboardHub : Hub
 
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var userSlugs = await db.Listeners
-            .Where(l => l.UserId == userId)
-            .Select(l => l.Slug)
+        var userClientIds = await db.Clients
+            .Where(c => c.UserId == userId)
+            .Select(c => c.Id.ToString())
             .ToListAsync();
 
         var userAgents = _registry.GetAll()
-            .Where(a => userSlugs.Contains(a.ClientId))
+            .Where(a => userClientIds.Contains(a.ClientId))
             .ToList();
 
         await Clients.Caller.SendAsync("AgentList", userAgents);

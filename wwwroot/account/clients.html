@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clients — Callback Relay</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: #0a0a0a;
+            color: #e6e6e6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            font-size: 13px;
+        }
+
+        ::selection { background: rgba(0,212,170,0.28); }
+        ::-webkit-scrollbar { width: 11px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; border: 3px solid #0a0a0a; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+        @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modal-in   { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,214,143,0.5); } 70% { box-shadow: 0 0 0 5px rgba(0,214,143,0); } 100% { box-shadow: 0 0 0 0 rgba(0,214,143,0); } }
+
+        /* ── Top bar ── */
+        header { display: flex; align-items: center; gap: 24px; height: 52px; padding: 0 18px; background: #0d0d0d; border-bottom: 1px solid #1f1f1f; }
+        .brand { display: flex; align-items: center; gap: 10px; padding-right: 6px; }
+        .brand-name { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; }
+        nav { display: flex; align-items: center; gap: 2px; }
+        .nav-link { font-size: 13px; color: #8a8a8a; text-decoration: none; padding: 6px 11px; border-radius: 6px; transition: color 120ms, background 120ms; }
+        .nav-link:hover  { color: #e6e6e6; background: #1a1a1a; }
+        .nav-link.active { color: #e6e6e6; background: #1a1a1a; }
+        .header-spacer { flex: 1; }
+        .avatar-wrap { position: relative; }
+        .avatar { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #1a1a1a; border: 1px solid #2a2a2a; color: #8a8a8a; font-size: 11px; font-weight: 600; cursor: pointer; transition: color 120ms, background 120ms; }
+        .avatar:hover { color: #e6e6e6; background: #222; }
+        .user-menu { position: absolute; right: 0; top: calc(100% + 8px); background: #111; border: 1px solid #2a2a2a; border-radius: 8px; min-width: 172px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100; }
+        .user-menu-email { padding: 10px 14px; font-size: 11px; color: #5a5a5a; border-bottom: 1px solid #1f1f1f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .user-menu-signout { display: block; width: 100%; padding: 9px 14px; background: none; border: none; color: #8a8a8a; font-size: 13px; font-family: inherit; text-align: left; cursor: pointer; transition: color 120ms, background 120ms; }
+        .user-menu-signout:hover { color: #ff6b78; background: rgba(255,71,87,0.08); }
+
+        /* ── Content ── */
+        .content { max-width: 1000px; margin: 0 auto; padding: 30px 24px 60px; }
+        .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; }
+        h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 4px; }
+        .page-sub { font-size: 13px; color: #8a8a8a; }
+
+        .btn-primary { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 15px; background: #00d4aa; color: #062d24; border: none; border-radius: 8px; font-size: 13px; font-weight: 650; font-family: inherit; cursor: pointer; transition: background 120ms; }
+        .btn-primary:hover { background: #00e6b8; }
+
+        /* ── Table ── */
+        .table-shell { border: 1px solid #1f1f1f; border-radius: 10px; overflow: hidden; background: #0d0d0d; }
+        .table-head { display: grid; grid-template-columns: 1.2fr 1.4fr 110px 1fr 1fr 80px; gap: 16px; padding: 11px 18px; border-bottom: 1px solid #1f1f1f; background: #111; }
+        .th { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; color: #6a6a6a; text-transform: uppercase; }
+        .table-body { display: flex; flex-direction: column; }
+
+        .client-row { display: grid; grid-template-columns: 1.2fr 1.4fr 110px 1fr 1fr 80px; gap: 16px; padding: 14px 18px; align-items: center; border-bottom: 1px solid #161616; transition: background 120ms; }
+        .client-row:hover { background: #131313; }
+        .client-row:last-child { border-bottom: none; }
+
+        .cell-label { font-size: 13px; color: #d6d6d6; font-weight: 500; }
+        .cell-key   { font-size: 12.5px; color: #9a9a9a; font-family: "Consolas", monospace; }
+        .cell-date  { font-size: 12.5px; color: #8a8a8a; font-family: "Consolas", monospace; }
+        .cell-used  { font-size: 12.5px; font-family: "Consolas", monospace; }
+
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; }
+        .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .status-dot.online  { background: #00d68f; animation: pulse 2.4s infinite; }
+        .status-dot.offline { background: #3a3a3a; }
+        .status-label.online  { color: #34e0a8; }
+        .status-label.offline { color: #4a4a4a; }
+
+        .btn-revoke { height: 30px; padding: 0 12px; background: #141414; border: 1px solid #2a2a2a; border-radius: 7px; color: #8a8a8a; font-size: 12px; font-weight: 550; font-family: inherit; cursor: pointer; transition: background 120ms, color 120ms, border-color 120ms; }
+        .btn-revoke:hover { background: rgba(255,71,87,0.12); color: #ff6b78; border-color: rgba(255,71,87,0.35); }
+
+        /* ── Modal ── */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50; animation: overlay-in 120ms ease; }
+        .overlay.hidden { display: none; }
+        .modal { width: 100%; max-width: 460px; background: #111; border: 1px solid #2a2a2a; border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,0.5); animation: modal-in 180ms cubic-bezier(0.16,1,0.3,1); overflow: hidden; }
+        .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #1f1f1f; }
+        .modal-head h2 { font-size: 16px; font-weight: 650; }
+        .icon-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid #2a2a2a; border-radius: 7px; color: #8a8a8a; cursor: pointer; transition: background 120ms, color 120ms; }
+        .icon-btn:hover { background: #1f1f1f; color: #e6e6e6; }
+        label { display: block; font-size: 12px; color: #9a9a9a; margin-bottom: 6px; }
+        input[type="text"] { width: 100%; height: 40px; padding: 0 12px; background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; color: #e6e6e6; font-size: 14px; font-family: inherit; outline: none; transition: border-color 120ms, box-shadow 120ms; }
+        input:focus { border-color: #00d4aa; box-shadow: 0 0 0 3px rgba(0,212,170,0.1); }
+        .modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px; border-top: 1px solid #1f1f1f; }
+        .btn-ghost { height: 38px; padding: 0 16px; background: transparent; border: 1px solid #2a2a2a; border-radius: 8px; color: #b6b6b6; font-size: 13px; font-weight: 550; font-family: inherit; cursor: pointer; transition: background 120ms, color 120ms; }
+        .btn-ghost:hover { background: #1a1a1a; color: #c6c6c6; }
+
+        /* Reveal stage */
+        .reveal-body { padding: 22px; }
+        .reveal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .check-badge { width: 32px; height: 32px; border-radius: 8px; background: rgba(0,214,143,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .reveal-header h2 { font-size: 16px; font-weight: 650; margin-bottom: 2px; }
+        .reveal-header p  { font-size: 12px; color: #8a8a8a; }
+        .warning-box { display: flex; align-items: flex-start; gap: 9px; background: rgba(255,165,2,0.08); border: 1px solid rgba(255,165,2,0.25); border-radius: 8px; padding: 11px 13px; margin-bottom: 14px; }
+        .warning-box span { font-size: 12.5px; color: #ffc97a; line-height: 1.5; }
+        .key-box { display: flex; align-items: center; background: #0c0c0c; border: 1px solid #232323; border-radius: 8px; padding: 11px 13px; margin-bottom: 18px; }
+        .key-val { flex: 1; font-size: 13px; color: #34e0a8; font-family: "Consolas", monospace; word-break: break-all; }
+        .btn-copy-big { width: 100%; height: 42px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #00d4aa; color: #062d24; border: none; border-radius: 8px; font-size: 14px; font-weight: 650; font-family: inherit; cursor: pointer; transition: background 120ms; margin-bottom: 10px; }
+        .btn-copy-big:hover { background: #00e6b8; }
+        .btn-done { width: 100%; height: 40px; background: transparent; border: 1px solid #2a2a2a; border-radius: 8px; color: #b6b6b6; font-size: 13px; font-weight: 550; font-family: inherit; cursor: pointer; transition: background 120ms, color 120ms; }
+        .btn-done:hover { background: #1a1a1a; color: #c6c6c6; }
+
+        .install-box { background: #0c0c0c; border: 1px solid #232323; border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
+        .install-label { font-size: 11px; color: #5a5a5a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.07em; }
+        .install-cmd { font-size: 12px; color: #9a9a9a; font-family: "Consolas", monospace; word-break: break-all; line-height: 1.6; }
+        .install-cmd strong { color: #34e0a8; }
+
+        .stage { display: none; }
+        .stage.active { display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="1.6" fill="#00d4aa"/>
+        </svg>
+        <span class="brand-name">Callback Relay</span>
+    </div>
+    <nav>
+        <a href="/" class="nav-link">Feed</a>
+        <a href="apps.html" class="nav-link">Apps</a>
+        <a href="clients.html" class="nav-link active">Clients</a>
+        <a href="admin.html" class="nav-link" id="admin-link" hidden>Admin</a>
+    </nav>
+    <div class="header-spacer"></div>
+    <div class="avatar-wrap">
+        <button class="avatar" id="avatar-el">…</button>
+        <div class="user-menu" id="user-menu" hidden>
+            <div class="user-menu-email" id="user-menu-email"></div>
+            <button class="user-menu-signout" id="signout-btn">Sign out</button>
+        </div>
+    </div>
+</header>
+
+<div class="content">
+    <div class="page-head">
+        <div>
+            <h1>Clients</h1>
+            <p class="page-sub" id="page-sub">Each client represents a machine running the relay agent.</p>
+        </div>
+        <button class="btn-primary" id="add-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5 L12 19 M5 12 L19 12" stroke="#062d24" stroke-width="2.2" stroke-linecap="round"/></svg>
+            Add client
+        </button>
+    </div>
+
+    <div class="table-shell">
+        <div class="table-head">
+            <span class="th">Label</span>
+            <span class="th">Key</span>
+            <span class="th">Status</span>
+            <span class="th">Created</span>
+            <span class="th">Last used</span>
+            <span class="th">Actions</span>
+        </div>
+        <div class="table-body" id="table-body"></div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay hidden" id="overlay">
+    <div class="modal">
+
+        <!-- Stage 1: Label -->
+        <div class="stage active" id="stage-label">
+            <div class="modal-head">
+                <h2>Add client</h2>
+                <button class="icon-btn" id="close-btn-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div style="padding:20px 22px;display:flex;flex-direction:column;gap:13px;">
+                <div>
+                    <label>Client label</label>
+                    <input type="text" id="client-label" placeholder="Work laptop, Home server…">
+                </div>
+                <p style="margin:0;font-size:12px;color:#6a6a6a;line-height:1.5;">
+                    Give it a name that identifies the machine. You'll link apps to this client so the agent on that machine knows which callbacks to forward.
+                </p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" id="cancel-btn">Cancel</button>
+                <button class="btn-primary" id="create-btn">Create client</button>
+            </div>
+        </div>
+
+        <!-- Stage 2: Reveal -->
+        <div class="stage" id="stage-reveal">
+            <div class="reveal-body">
+                <div class="reveal-header">
+                    <div class="check-badge">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 7" stroke="#34e0a8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div>
+                        <h2>Client created</h2>
+                        <p id="reveal-label"></p>
+                    </div>
+                </div>
+
+                <div class="warning-box">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px">
+                        <path d="M12 3 L22 20 L2 20 Z" stroke="#ffb84d" stroke-width="1.6" stroke-linejoin="round"/>
+                        <path d="M12 10 L12 14 M12 16.5 L12 17" stroke="#ffb84d" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <span>Copy this key now — it won't be shown again.</span>
+                </div>
+
+                <div class="key-box">
+                    <span class="key-val" id="key-val"></span>
+                </div>
+
+                <button class="btn-copy-big" id="copy-key-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="#062d24" stroke-width="1.9"/><path d="M5 15 L4 15 A1 1 0 0 1 3 14 L3 4 A1 1 0 0 1 4 3 L14 3 A1 1 0 0 1 15 4 L15 5" stroke="#062d24" stroke-width="1.9"/></svg>
+                    <span id="copy-key-label">Copy key</span>
+                </button>
+
+                <div class="install-box">
+                    <div class="install-label">Install command</div>
+                    <div class="install-cmd" id="install-cmd"></div>
+                </div>
+
+                <button class="btn-done" id="done-btn" style="margin-top:12px">Done</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+"use strict";
+
+let clients    = [];
+let currentKey = "";
+let copyTimer  = null;
+let serverOrigin = location.origin;
+
+function esc(s) { return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—"; }
+function relTime(iso) {
+    if (!iso) return "never";
+    const s = Math.floor((Date.now()-new Date(iso))/1000);
+    if (s < 60) return "just now";
+    if (s < 3600) return `${Math.floor(s/60)}m ago`;
+    return `${Math.floor(s/3600)}h ago`;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+(async () => {
+    const meRes = await fetch("/auth/me");
+    if (!meRes.ok) { window.location.replace("/account/login.html"); return; }
+    const me = await meRes.json();
+    document.getElementById("avatar-el").textContent = me.initials;
+    document.getElementById("user-menu-email").textContent = me.email;
+    if (me.isAdmin) document.getElementById("admin-link").hidden = false;
+    await loadClients();
+})();
+
+document.getElementById("avatar-el").addEventListener("click", e => {
+    e.stopPropagation();
+    document.getElementById("user-menu").hidden = !document.getElementById("user-menu").hidden;
+});
+document.addEventListener("click", () => { document.getElementById("user-menu").hidden = true; });
+document.getElementById("signout-btn").addEventListener("click", async () => {
+    await fetch("/auth/logout", { method: "POST" });
+    location.replace("login.html");
+});
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+async function loadClients() {
+    const res = await fetch("/api/clients");
+    if (!res.ok) return;
+    clients = await res.json();
+    render();
+}
+
+function render() {
+    const body = document.getElementById("table-body");
+    body.innerHTML = "";
+    document.getElementById("page-sub").textContent =
+        `Each client represents a machine running the relay agent. ${clients.length} registered.`;
+
+    if (clients.length === 0) {
+        body.innerHTML = `<div style="padding:32px 18px;text-align:center;color:#4a4a4a;">No clients yet. Add one to get started.</div>`;
+        return;
+    }
+
+    clients.forEach(c => {
+        const row = document.createElement("div");
+        row.className = "client-row";
+        const onCls = c.isOnline ? "online" : "offline";
+        row.innerHTML = `
+            <span class="cell-label">${esc(c.label)}</span>
+            <span class="cell-key">${esc(c.masked)}</span>
+            <span class="status-badge">
+                <span class="status-dot ${onCls}"></span>
+                <span class="status-label ${onCls}">${c.isOnline ? "Online" : "Offline"}</span>
+            </span>
+            <span class="cell-date">${fmtDate(c.createdAt)}</span>
+            <span class="cell-used" style="color:${c.lastUsedAt?"#8a8a8a":"#5a5a5a"}">${relTime(c.lastUsedAt)}</span>
+            <div><button class="btn-revoke">Remove</button></div>`;
+
+        row.querySelector(".btn-revoke").addEventListener("click", () => removeClient(c.id));
+        body.appendChild(row);
+    });
+}
+
+async function removeClient(id) {
+    if (!confirm("Remove this client? Apps linked to it will lose their agent connection.")) return;
+    const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+    if (res.ok || res.status === 204) {
+        clients = clients.filter(c => c.id !== id);
+        render();
+    }
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+const overlay     = document.getElementById("overlay");
+const stageLabel  = document.getElementById("stage-label");
+const stageReveal = document.getElementById("stage-reveal");
+const labelInput  = document.getElementById("client-label");
+
+function openModal() {
+    labelInput.value = "";
+    document.getElementById("copy-key-label").textContent = "Copy key";
+    setStage("label");
+    overlay.classList.remove("hidden");
+    labelInput.focus();
+}
+
+function closeModal() { overlay.classList.add("hidden"); }
+function setStage(s) {
+    stageLabel.classList.toggle("active",  s === "label");
+    stageReveal.classList.toggle("active", s === "reveal");
+}
+
+document.getElementById("add-btn").addEventListener("click", openModal);
+document.getElementById("close-btn-1").addEventListener("click", closeModal);
+document.getElementById("cancel-btn").addEventListener("click", closeModal);
+overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(); });
+
+document.getElementById("create-btn").addEventListener("click", async () => {
+    const label = labelInput.value.trim();
+    if (!label) { labelInput.focus(); return; }
+
+    const btn = document.getElementById("create-btn");
+    btn.disabled = true;
+    btn.textContent = "Creating…";
+
+    const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label }),
+    });
+
+    btn.disabled = false;
+    btn.textContent = "Create client";
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Failed to create client.");
+        return;
+    }
+
+    const data = await res.json();
+    currentKey = data.key;
+
+    document.getElementById("reveal-label").textContent = data.label;
+    document.getElementById("key-val").textContent      = currentKey;
+    document.getElementById("install-cmd").innerHTML    =
+        `<strong>CallbackAgent install</strong> --server ${esc(serverOrigin)} --api-key ${esc(currentKey)}`;
+
+    setStage("reveal");
+
+    clients.unshift({ id: data.id, label: data.label, masked: data.masked, isOnline: false, createdAt: data.createdAt, lastUsedAt: null });
+});
+
+document.getElementById("copy-key-btn").addEventListener("click", () => {
+    try { navigator.clipboard?.writeText(currentKey); } catch {}
+    document.getElementById("copy-key-label").textContent = "Copied!";
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => { document.getElementById("copy-key-label").textContent = "Copy key"; }, 1600);
+});
+
+document.getElementById("done-btn").addEventListener("click", () => { closeModal(); render(); });
+</script>
+</body>
+</html>

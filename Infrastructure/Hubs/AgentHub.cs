@@ -51,9 +51,9 @@ public sealed class AgentHub : Hub
         {
             var db   = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var hash = KeyHasher.Hash(apiKey);
-            var keyRecord = await db.ApiKeys.FirstOrDefaultAsync(k => k.KeyHash == hash);
+            var client = await db.Clients.FirstOrDefaultAsync(c => c.KeyHash == hash);
 
-            if (keyRecord is null)
+            if (client is null)
             {
                 _logger.LogWarning("Agent connection rejected — invalid API key from {Ip}",
                     httpContext?.Connection.RemoteIpAddress);
@@ -61,10 +61,10 @@ public sealed class AgentHub : Hub
                 return;
             }
 
-            keyRecord.LastUsedAt = DateTimeOffset.UtcNow;
+            client.LastUsedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
-            clientId = keyRecord.UserId;
-            userId   = keyRecord.UserId;
+            clientId = client.Id.ToString();
+            userId   = client.UserId;
         }
 
         Context.Items["clientId"] = clientId;
