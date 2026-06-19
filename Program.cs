@@ -89,6 +89,8 @@ builder.Services
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
 var rateLimitPerMinute = section.GetValue<int>(nameof(AppOptions.RateLimitPerMinute), 120);
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddRateLimiter(rl =>
 {
     rl.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
@@ -100,6 +102,20 @@ builder.Services.AddRateLimiter(rl =>
                 PermitLimit = rateLimitPerMinute,
                 QueueLimit  = 0
             }));
+
+    // Per-slug limit for callback ingestion: 60 req/min per unique slug.
+    rl.AddPolicy("per-slug", ctx =>
+    {
+        var slug = ctx.Request.Query["slug"].FirstOrDefault() ?? "__none__";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"slug:{slug}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window      = TimeSpan.FromMinutes(1),
+                PermitLimit = 60,
+                QueueLimit  = 0
+            });
+    });
 
     rl.RejectionStatusCode = 429;
     rl.OnRejected = async (ctx, _) =>

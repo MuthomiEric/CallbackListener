@@ -14,7 +14,7 @@ public static class CallbackEndpoints
         // Catch-all: any path on the domain is a potential webhook.
         // The target app is identified by ?slug=<value> in the query string.
         // Example: POST https://relay.example.com/payment/stripe?slug=x6tYt
-        app.Map("/{**subpath}", HandleAsync);
+        app.Map("/{**subpath}", HandleAsync).RequireRateLimiting("per-slug");
     }
 
     private static async Task<IResult> HandleAsync(

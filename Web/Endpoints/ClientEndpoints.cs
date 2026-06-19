@@ -5,6 +5,7 @@ using CallbackListener.Infrastructure.Data;
 using CallbackListener.Infrastructure.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CallbackListener.Web.Endpoints;
 
@@ -14,17 +15,22 @@ public static class ClientEndpoints
     {
         var group = app.MapGroup("/api/clients").RequireAuthorization();
 
-        group.MapGet("/", async (HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IAgentRegistry registry) =>
+        group.MapGet("/", async (HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IAgentRegistry registry, IMemoryCache cache) =>
         {
             var user = await userMgr.GetUserAsync(ctx.User);
             if (user is null) return Results.Unauthorized();
 
-            var clients = await db.Clients
-                .Where(c => c.UserId == user.Id)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
+            var cacheKey = $"clients:{user.Id}";
+            if (!cache.TryGetValue(cacheKey, out List<Client>? clients))
+            {
+                clients = await db.Clients
+                    .Where(c => c.UserId == user.Id)
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
+                cache.Set(cacheKey, clients, TimeSpan.FromSeconds(10));
+            }
 
-            return Results.Ok(clients.Select(c => new
+            return Results.Ok(clients!.Select(c => new
             {
                 id         = c.Id,
                 label      = c.Label,
@@ -35,7 +41,7 @@ public static class ClientEndpoints
             }));
         });
 
-        group.MapPost("/", async (CreateClientRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr) =>
+        group.MapPost("/", async (CreateClientRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
         {
             var user = await userMgr.GetUserAsync(ctx.User);
             if (user is null) return Results.Unauthorized();
@@ -54,6 +60,7 @@ public static class ClientEndpoints
 
             db.Clients.Add(client);
             await db.SaveChangesAsync();
+            cache.Remove($"clients:{user.Id}");
 
             return Results.Ok(new
             {
@@ -65,7 +72,7 @@ public static class ClientEndpoints
             });
         });
 
-        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr) =>
+        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
         {
             var user = await userMgr.GetUserAsync(ctx.User);
             if (user is null) return Results.Unauthorized();
@@ -75,6 +82,7 @@ public static class ClientEndpoints
 
             db.Clients.Remove(client);
             await db.SaveChangesAsync();
+            cache.Remove($"clients:{user.Id}");
             return Results.NoContent();
         });
     }
