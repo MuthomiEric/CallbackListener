@@ -3,7 +3,7 @@
 // ── Auth guard ────────────────────────────────────────────────────────────────
 (async () => {
     const res = await fetch("/auth/me");
-    if (!res.ok) { window.location.replace("/account/login"); return; }
+    if (!res.ok) { window.location.replace("/landing"); return; }
     const me = await res.json();
     currentUserId = me.id;
     const avatarEl = document.getElementById("avatar-el");

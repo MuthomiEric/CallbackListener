@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Callback Relay</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:          #1e1e1e;
+            --sidebar:     #252526;
+            --actbar:      #333333;
+            --tabbar:      #252526;
+            --tab:         #2d2d30;
+            --tab-active:  #1e1e1e;
+            --titlebar:    #3c3c3c;
+            --status:      #007acc;
+            --border:      #3c3c3c;
+            --text:        #cccccc;
+            --muted:       #858585;
+            --blue:        #569cd6;
+            --teal:        #4ec9b0;
+            --green:       #6a9955;
+            --orange:      #ce9178;
+            --yellow:      #dcdcaa;
+            --purple:      #c586c0;
+            --red:         #f44747;
+            --number:      #b5cea8;
+            --accent:      #007acc;
+        }
+
+        html, body { height: 100%; overflow: hidden; }
+
+        body {
+            font-family: "Segoe UI", system-ui, sans-serif;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        /* ── VS Code Window ── */
+        .vsc-window {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        /* ── Title bar ── */
+        .titlebar {
+            height: 30px;
+            background: var(--titlebar);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 0;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .traffic-lights {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-right: 16px;
+        }
+        .tl {
+            width: 12px; height: 12px; border-radius: 50%;
+            cursor: pointer;
+        }
+        .tl-r { background: #ff5f57; }
+        .tl-y { background: #febc2e; }
+        .tl-g { background: #28c840; }
+
+        .titlebar-menus {
+            display: flex;
+            gap: 2px;
+        }
+        .titlebar-menu {
+            padding: 3px 8px;
+            font-size: 12px;
+            color: #cccccc;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .titlebar-menu:hover { background: rgba(255,255,255,0.1); }
+
+        .titlebar-title {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            color: #cccccc;
+        }
+
+        .titlebar-right { width: 120px; }
+
+        /* ── Main layout ── */
+        .vsc-body {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* ── Activity bar ── */
+        .actbar {
+            width: 48px;
+            background: var(--actbar);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            gap: 4px;
+            flex-shrink: 0;
+            border-right: 1px solid rgba(0,0,0,0.3);
+        }
+
+        .act-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #858585;
+            position: relative;
+            transition: color 120ms;
+        }
+        .act-icon:hover { color: #cccccc; }
+        .act-icon.active {
+            color: #ffffff;
+        }
+        .act-icon.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            background: #007acc;
+            border-radius: 0 2px 2px 0;
+        }
+        .act-icon svg { width: 24px; height: 24px; }
+
+        .act-spacer { flex: 1; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .sidebar-title {
+            padding: 9px 14px 7px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #bbbbbb;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            flex-shrink: 0;
+        }
+
+        .sidebar-section-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 8px 5px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #cccccc;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            user-select: none;
+        }
+        .sidebar-section-head svg { opacity: 0.7; }
+
+        .tree {
+            padding: 2px 0;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px 3px 0;
+            font-size: 13px;
+            color: #cccccc;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .tree-item:hover { background: #2a2d2e; }
+        .tree-item.active { background: #094771; color: #ffffff; }
+
+        .tree-indent { width: 16px; flex-shrink: 0; }
+        .tree-caret { width: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .tree-caret svg { width: 10px; height: 10px; opacity: 0.7; }
+        .tree-icon { flex-shrink: 0; font-size: 14px; }
+        .tree-label { overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+
+        /* ── Editor area ── */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background: var(--bg);
+        }
+
+        /* ── Tab bar ── */
+        .tabbar {
+            display: flex;
+            align-items: stretch;
+            height: 35px;
+            background: var(--tabbar);
+            flex-shrink: 0;
+            overflow-x: auto;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .tabbar::-webkit-scrollbar { height: 3px; }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 14px;
+            background: var(--tab);
+            color: #969696;
+            font-size: 12.5px;
+            white-space: nowrap;
+            cursor: pointer;
+            border-top: 1px solid transparent;
+            border-right: 1px solid var(--tabbar);
+            transition: color 100ms;
+            text-decoration: none;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .tab:hover { color: #cccccc; }
+        .tab.active {
+            background: var(--tab-active);
+            color: #ffffff;
+            border-top-color: #007acc;
+        }
+        .tab .tab-x {
+            width: 16px; height: 16px;
+            border-radius: 3px;
+            display: flex; align-items: center; justify-content: center;
+            color: #969696;
+            font-size: 11px;
+            opacity: 0;
+        }
+        .tab:hover .tab-x, .tab.active .tab-x { opacity: 1; }
+        .tab .tab-x:hover { background: rgba(255,255,255,0.1); color: #cccccc; }
+
+        /* ── Editor content ── */
+        .editor {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 40px 60px;
+        }
+
+        .editor::-webkit-scrollbar { width: 10px; }
+        .editor::-webkit-scrollbar-track { background: var(--bg); }
+        .editor::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
+
+        .welcome-wrap {
+            width: 100%;
+            max-width: 680px;
+        }
+
+        .welcome-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .welcome-logo {
+            width: 52px;
+            height: 52px;
+            background: rgba(0,122,204,0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .welcome-title { font-size: 28px; font-weight: 300; color: #cccccc; letter-spacing: -0.02em; }
+        .welcome-sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: "Consolas", monospace; }
+        .comment { color: var(--green); }
+
+        .section { margin-bottom: 36px; }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .start-list { display: flex; flex-direction: column; gap: 4px; }
+
+        .start-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #cccccc;
+            text-decoration: none;
+            transition: background 100ms;
+        }
+        .start-item:hover { background: #2a2d2e; }
+        .start-item svg { flex-shrink: 0; color: var(--accent); }
+        .start-item-main { font-size: 13px; color: #cccccc; }
+        .start-item-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+        .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px 16px;
+        }
+        .feature-card-title {
+            font-size: 12.5px;
+            color: var(--teal);
+            font-family: "Consolas", monospace;
+            margin-bottom: 6px;
+        }
+        .feature-card-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+        .code-block {
+            background: #252526;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px 16px;
+            font-family: "Consolas", monospace;
+            font-size: 12.5px;
+            color: #cccccc;
+            overflow-x: auto;
+            line-height: 1.7;
+        }
+        .code-block .cm { color: var(--green); }
+        .code-block .kw { color: var(--blue); }
+        .code-block .st { color: var(--orange); }
+        .code-block .fn { color: var(--yellow); }
+        .code-block .ty { color: var(--teal); }
+        .code-block .num { color: var(--number); }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 32px;
+            padding: 0 14px;
+            background: #0e639c;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 120ms;
+        }
+        .btn-primary:hover { background: #1177bb; }
+
+        .btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 32px;
+            padding: 0 14px;
+            background: transparent;
+            color: #cccccc;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 120ms, border-color 120ms;
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.06); border-color: #555; }
+
+        .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 2px 8px; border-radius: 11px;
+            font-size: 11px; font-family: "Consolas", monospace;
+        }
+        .badge-home-lab { background: rgba(254,188,46,0.12); color: #febc2e; border: 1px solid rgba(254,188,46,0.25); }
+
+        /* ── Status bar ── */
+        .statusbar {
+            height: 22px;
+            background: var(--status);
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0 10px;
+            height: 100%;
+            font-size: 11.5px;
+            color: rgba(255,255,255,0.9);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .status-item:hover { background: rgba(255,255,255,0.12); }
+        .status-item svg { width: 13px; height: 13px; }
+
+        .status-spacer { flex: 1; }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            .sidebar { display: none; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .titlebar-menus { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="vsc-window">
+
+    <!-- Title bar -->
+    <div class="titlebar">
+        <div class="traffic-lights">
+            <div class="tl tl-r"></div>
+            <div class="tl tl-y"></div>
+            <div class="tl tl-g"></div>
+        </div>
+        <div class="titlebar-menus">
+            <div class="titlebar-menu">File</div>
+            <div class="titlebar-menu">Edit</div>
+            <div class="titlebar-menu">View</div>
+            <div class="titlebar-menu">Help</div>
+        </div>
+        <div class="titlebar-title">Welcome — Callback Relay</div>
+        <div class="titlebar-right"></div>
+    </div>
+
+    <!-- Body -->
+    <div class="vsc-body">
+
+        <!-- Activity bar -->
+        <div class="actbar">
+            <div class="act-icon active" title="Explorer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="act-icon" title="Search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="11" cy="11" r="7"/>
+                    <path d="M21 21l-4.35-4.35" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="act-icon" title="Source Control">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/>
+                    <path d="M6 8v8M8 6h7a3 3 0 0 1 3 3v1" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="act-icon" title="Extensions">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="3" y="3" width="8" height="8" rx="1"/>
+                    <rect x="13" y="3" width="8" height="8" rx="1"/>
+                    <rect x="3" y="13" width="8" height="8" rx="1"/>
+                    <path d="M13 17h2m2 0h2M19 13v2m0 2v2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="act-spacer"></div>
+            <div class="act-icon" title="Settings" onclick="window.location='/account/login'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-title">Explorer</div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-head">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 3l3 3 3-3" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    CALLBACK-RELAY
+                </div>
+                <div class="tree">
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret">
+                            <svg viewBox="0 0 10 10" fill="none"><path d="M2 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="tree-icon">📁</div>
+                        <div class="tree-label">src</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">⚙️</div>
+                        <div class="tree-label">Program.cs</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">🗄️</div>
+                        <div class="tree-label">AppDbContext.cs</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret">
+                            <svg viewBox="0 0 10 10" fill="none"><path d="M2 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="tree-icon">📁</div>
+                        <div class="tree-label">wwwroot</div>
+                    </div>
+                    <div class="tree-item active">
+                        <div class="tree-indent"></div>
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">🌐</div>
+                        <div class="tree-label">Welcome</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">📄</div>
+                        <div class="tree-label">apps.html</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">📄</div>
+                        <div class="tree-label">clients.html</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret">
+                            <svg viewBox="0 0 10 10" fill="none"><path d="M2 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="tree-icon">📁</div>
+                        <div class="tree-label">Agent</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">⚙️</div>
+                        <div class="tree-label">Program.cs</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">📋</div>
+                        <div class="tree-label">README.md</div>
+                    </div>
+                    <div class="tree-item">
+                        <div class="tree-indent"></div>
+                        <div class="tree-caret"></div>
+                        <div class="tree-icon">🔧</div>
+                        <div class="tree-label">appsettings.json</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-area">
+            <div class="tabbar">
+                <div class="tab active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#007acc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#4ec9b0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="1.4" fill="#007acc"/>
+                    </svg>
+                    Welcome
+                    <span class="tab-x">×</span>
+                </div>
+                <div class="tab" onclick="window.location='/account/login'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#569cd6" stroke-width="1.6"><path d="M9 12l2 2 4-4M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Get Started
+                    <span class="tab-x">×</span>
+                </div>
+            </div>
+
+            <div class="editor">
+                <div class="welcome-wrap">
+
+                    <div class="welcome-header">
+                        <div class="welcome-logo">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                                <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#007acc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#4ec9b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="12" cy="12" r="1.8" fill="#007acc"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="welcome-title">Callback Relay</div>
+                            <div class="welcome-sub"><span class="comment">// Receive, inspect &amp; relay webhooks to localhost</span></div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Start</div>
+                        <div class="start-list">
+                            <a href="/auth/google" class="start-item">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-9 9M3 21l9-9"/></svg>
+                                <div>
+                                    <div class="start-item-main">Sign in with Google</div>
+                                    <div class="start-item-sub">Create a free account using your Google login</div>
+                                </div>
+                            </a>
+                            <a href="/account/login" class="start-item">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                                <div>
+                                    <div class="start-item-main">Sign in</div>
+                                    <div class="start-item-sub">Already have an account</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="section">
+                        <div class="section-title">The problem it solves</div>
+                        <div class="code-block">
+<span class="cm">// Your webhook sender (Stripe, GitHub, Twilio...) needs a</span>
+<span class="cm">// public URL. localhost:3000 isn't reachable from the internet.</span>
+
+<span class="kw">POST</span> <span class="st">https://callback.erickmuthomi.dev/webhooks/stripe?slug=payments</span>
+         <span class="cm">↓  received by the relay server</span>
+         <span class="cm">↓  agent running on your machine picks it up</span>
+<span class="kw">POST</span> <span class="st">http://localhost:3000/webhooks/stripe</span>
+         <span class="cm">↑  arrives as if Stripe called you directly</span>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="section">
+                        <div class="section-title">Features</div>
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <div class="feature-card-title">realtime_feed()</div>
+                                <div class="feature-card-desc">Every incoming webhook appears instantly. Headers, body, query params, source IP — all visible.</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-card-title">relay_to_local(port, path)</div>
+                                <div class="feature-card-desc">Install the agent once. It stays connected and forwards callbacks to whatever port and path you configure.</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-card-title">delivery_mode: "Both"</div>
+                                <div class="feature-card-desc">Web only, local only, or both. Switch per app, any time. Local mode keeps callbacks off the web feed entirely.</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-card-title">rate_limit(60, "per_slug")</div>
+                                <div class="feature-card-desc">60 requests per minute per slug. Global IP-based limit on top. No runaway webhook floods.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="section">
+                        <div class="section-title">Quick test (no account needed)</div>
+                        <div style="margin-bottom:10px;font-size:12px;color:var(--muted);">Send a webhook to the public demo endpoint and inspect it instantly after signing in.</div>
+                        <div class="code-block">
+<span class="cm"># Send a test callback to your app slug</span>
+<span class="fn">curl</span> -X <span class="kw">POST</span> <span class="st">"https://callback.erickmuthomi.dev/test?slug=your-slug"</span> \
+     -H <span class="st">"Content-Type: application/json"</span> \
+     -d <span class="st">'{"hello":"world","source":"curl"}'</span>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                        <div class="btn-row">
+                            <a href="/auth/google" class="btn-primary">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-9 9M3 21l9-9"/></svg>
+                                Get started
+                            </a>
+                            <a href="/account/login" class="btn-ghost">Sign in</a>
+                        </div>
+                        <span class="badge badge-home-lab">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            Home lab — may be down occasionally
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /vsc-body -->
+
+    <!-- Status bar -->
+    <div class="statusbar">
+        <div class="status-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            main
+        </div>
+        <div class="status-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Callback Relay
+        </div>
+        <div class="status-spacer"></div>
+        <div class="status-item">UTF-8</div>
+        <div class="status-item">ASP.NET Core 9</div>
+        <div class="status-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Ready
+        </div>
+    </div>
+
+</div>
+
+<script>
+// If already logged in, go straight to the feed
+(async () => {
+    try {
+        const res = await fetch("/auth/me");
+        if (res.ok) window.location.replace("/");
+    } catch {}
+})();
+</script>
+
+</body>
+</html>
