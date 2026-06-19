@@ -128,6 +128,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
+// Trust X-Forwarded-Proto from Cloudflare Tunnel so OAuth redirects use https://
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
 app.UseRateLimiter();
 app.UseDefaultFiles();
 app.UseStaticFiles();   // serves wwwroot files before routing touches anything
