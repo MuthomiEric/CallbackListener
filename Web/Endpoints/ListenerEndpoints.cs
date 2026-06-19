@@ -22,6 +22,7 @@ public static class ListenerEndpoints
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync();
 
+            var agentOnline = registry.IsOnline(user.Id);
             return Results.Ok(rows.Select(l => new
             {
                 id        = l.Id,
@@ -31,7 +32,7 @@ public static class ListenerEndpoints
                 port      = l.Port,
                 basePath  = l.BasePath,
                 mode      = (int)l.Mode,
-                isActive  = registry.GetByClientId(l.Slug)?.IsOnline ?? false,
+                isActive  = agentOnline,
                 createdAt = l.CreatedAt,
             }));
         });

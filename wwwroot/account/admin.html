@@ -259,7 +259,7 @@ async function loadUsers() {
 
 function render(users) {
     const totalApps = users.reduce((s, u) => s + u.appCount, 0);
-    const totalLive = users.reduce((s, u) => s + u.onlineAgents, 0);
+    const totalLive = users.filter(u => u.isOnline).length;
     const totalKeys = users.reduce((s, u) => s + u.keyCount, 0);
 
     document.getElementById("s-users").textContent = users.length;
@@ -285,8 +285,8 @@ function render(users) {
             <td><span class="joined">${fmtDate(u.createdAt)}</span></td>
             <td><span class="mono">${u.appCount}</span></td>
             <td><span class="mono">${u.keyCount}</span></td>
-            <td>${u.onlineAgents > 0
-                ? `<span class="badge-live"><span class="live-dot"></span>${u.onlineAgents} online</span>`
+            <td>${u.isOnline
+                ? `<span class="badge-live"><span class="live-dot"></span>online</span>`
                 : `<span style="color:#3a3a3a">—</span>`}
             </td>
             <td><span class="last-cb">${u.lastCallback ? relTime(u.lastCallback) : "—"}</span></td>

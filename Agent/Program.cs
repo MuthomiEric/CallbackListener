@@ -12,7 +12,6 @@ const string ServiceDesc    = "Relays webhooks from Callback Relay server to loc
 var command = "run";
 var server  = "";
 var apiKey  = "";
-var slug    = "";
 var timeout = 0;
 
 for (int i = 0; i < args.Length; i++)
@@ -23,7 +22,6 @@ for (int i = 0; i < args.Length; i++)
         case "uninstall":  command = "uninstall";                    break;
         case "--server":   server  = args[++i];                      break;
         case "--api-key":  apiKey  = args[++i];                      break;
-        case "--slug":     slug    = args[++i];                      break;
         case "--timeout":  int.TryParse(args[++i], out timeout);     break;
         case "--help":
         case "-h":
@@ -35,27 +33,15 @@ for (int i = 0; i < args.Length; i++)
 // ── Install ───────────────────────────────────────────────────────────────────
 if (command == "install")
 {
-    if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(slug))
+    if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(apiKey))
     {
-        Console.Error.WriteLine("Error: --server, --api-key and --slug are all required for install.");
+        Console.Error.WriteLine("Error: --server and --api-key are required for install.");
         Console.Error.WriteLine();
         PrintHelp();
         return 1;
     }
 
     var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-    var config = new
-    {
-        Logging = new { LogLevel = new { Default = "Information", Microsoft_AspNetCore_SignalR = "Warning" } },
-        Agent   = new
-        {
-            ServerUrl          = server,
-            ApiKey             = apiKey,
-            Slug               = slug,
-            LocalTimeoutSeconds = timeout > 0 ? timeout : 30,
-        }
-    };
-
     // Use a raw string so the SignalR key comes out with a dot, not underscore
     var json = $$"""
         {
@@ -68,7 +54,6 @@ if (command == "install")
           "Agent": {
             "ServerUrl": "{{server}}",
             "ApiKey": "{{apiKey}}",
-            "Slug": "{{slug}}",
             "LocalTimeoutSeconds": {{(timeout > 0 ? timeout : 30)}}
           }
         }
@@ -119,7 +104,6 @@ else if (OperatingSystem.IsLinux())
 var overrides = new Dictionary<string, string?>();
 if (!string.IsNullOrEmpty(server))  overrides[$"{AgentOptions.SectionName}:ServerUrl"]           = server;
 if (!string.IsNullOrEmpty(apiKey))  overrides[$"{AgentOptions.SectionName}:ApiKey"]              = apiKey;
-if (!string.IsNullOrEmpty(slug))    overrides[$"{AgentOptions.SectionName}:Slug"]                = slug;
 if (timeout > 0)                    overrides[$"{AgentOptions.SectionName}:LocalTimeoutSeconds"]  = timeout.ToString();
 if (overrides.Count > 0)
     builder.Configuration.AddInMemoryCollection(overrides);
@@ -143,9 +127,8 @@ var host = builder.Build();
 var log   = host.Services.GetRequiredService<ILogger<Program>>();
 var cfg   = host.Services.GetRequiredService<IConfiguration>();
 
-log.LogInformation("CallbackAgent starting — server: {Url}  slug: {Slug}",
-    cfg[$"{AgentOptions.SectionName}:ServerUrl"],
-    cfg[$"{AgentOptions.SectionName}:Slug"]);
+log.LogInformation("CallbackAgent starting — server: {Url}",
+    cfg[$"{AgentOptions.SectionName}:ServerUrl"]);
 
 await host.RunAsync();
 return 0;
@@ -157,13 +140,14 @@ static void PrintHelp()
         CallbackAgent — relays webhooks to your local service
 
         Usage:
-          CallbackAgent install --server <url> --api-key <key> --slug <slug> [--timeout <secs>]
+          CallbackAgent install --server <url> --api-key <key> [--timeout <secs>]
               Saves config and registers as a system service (auto-starts on boot).
+              One agent handles ALL apps registered to that API key.
 
           CallbackAgent uninstall
               Stops and removes the system service.
 
-          CallbackAgent --server <url> --api-key <key> --slug <slug>
+          CallbackAgent --server <url> --api-key <key>
               Runs in the foreground (useful for testing).
 
           CallbackAgent
@@ -172,7 +156,6 @@ static void PrintHelp()
         Options:
           --server   <url>   Relay server URL  (e.g. https://callback.example.com)
           --api-key  <key>   API key from the dashboard
-          --slug     <slug>  App slug from the dashboard
           --timeout  <secs>  Local forward timeout in seconds (default: 30)
         """);
 }

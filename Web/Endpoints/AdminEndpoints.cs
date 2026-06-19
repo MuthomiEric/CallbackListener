@@ -36,8 +36,8 @@ public static class AdminEndpoints
 
             var rows = users.Select(u =>
             {
-                var onlineAgents = u.Listeners.Count(l => registry.IsOnline(l.Slug));
-                var lastCb = store.GetRecent(1, u.Id).FirstOrDefault();
+                var isOnline = registry.IsOnline(u.Id);
+                var lastCb   = store.GetRecent(1, u.Id).FirstOrDefault();
                 return new
                 {
                     id           = u.Id,
@@ -46,7 +46,7 @@ public static class AdminEndpoints
                     createdAt    = u.CreatedAt,
                     appCount     = u.Listeners.Count,
                     keyCount     = u.ApiKeys.Count,
-                    onlineAgents,
+                    isOnline,
                     lastCallback = lastCb?.Timestamp,
                 };
             });

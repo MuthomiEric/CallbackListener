@@ -5,6 +5,7 @@
     const res = await fetch("/auth/me");
     if (!res.ok) { window.location.replace("/account/login.html"); return; }
     const me = await res.json();
+    currentUserId = me.id;
     const avatarEl = document.getElementById("avatar-el");
     if (avatarEl) avatarEl.textContent = me.initials;
     const emailEl = document.getElementById("user-menu-email");
@@ -36,7 +37,8 @@ document.getElementById("signout-btn")?.addEventListener("click", async () => {
 // ── State ──────────────────────────────────────────────────────────────────────
 let allCallbacks = [];
 let apps         = [];                 // registered apps from /api/apps
-const agents     = new Map();          // slug → AgentInfo
+let currentUserId = null;             // logged-in user's ID — used to look up agent status
+const agents     = new Map();          // userId → AgentInfo (one agent per user)
 const expandedIds  = new Set();        // persist expand state across re-renders
 let selectedSlug   = null;             // null = all apps
 const unreadCounts = new Map();        // slug → count of unseen callbacks
@@ -254,8 +256,8 @@ function renderSidebar() {
     const countEl   = document.getElementById("agent-count");
     container.innerHTML = "";
 
-    const onlineCount = apps.filter(a => agents.get(a.slug)?.isOnline).length;
-    countEl.textContent = `${apps.length} · ${onlineCount} live`;
+    const agentOnline = agents.get(currentUserId)?.isOnline ?? false;
+    countEl.textContent = `${apps.length} · ${agentOnline ? "agent live" : "offline"}`;
 
     // "All apps" row
     const allEl = document.createElement("div");
@@ -268,8 +270,7 @@ function renderSidebar() {
 
     apps.forEach(app => {
         const isSelected = app.slug === selectedSlug;
-        const agent      = agents.get(app.slug);
-        const isOnline   = agent?.isOnline ?? false;
+        const isOnline   = agents.get(currentUserId)?.isOnline ?? false;
         const unread     = unreadCounts.get(app.slug) || 0;
 
         const el = document.createElement("div");

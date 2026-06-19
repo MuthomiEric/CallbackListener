@@ -10,7 +10,7 @@ namespace CallbackListener.Infrastructure.Hubs;
 /// <summary>
 /// Agent connections via SignalR. Agents authenticate with an API key:
 ///   /hubs/agents?apiKey={key}  or  X-Api-Key header
-/// The API key maps to a specific listener slug, which becomes the agent's clientId.
+/// One agent handles all slugs owned by the key's user. clientId = userId.
 /// </summary>
 public sealed class AgentHub : Hub
 {
@@ -36,19 +36,10 @@ public sealed class AgentHub : Hub
         var httpContext = Context.GetHttpContext();
         var apiKey = httpContext?.Request.Headers["X-Api-Key"].FirstOrDefault()
                   ?? httpContext?.Request.Query["apiKey"].FirstOrDefault();
-        var slug   = httpContext?.Request.Query["slug"].FirstOrDefault();
 
         if (string.IsNullOrEmpty(apiKey))
         {
             _logger.LogWarning("Agent connection rejected — no API key from {Ip}",
-                httpContext?.Connection.RemoteIpAddress);
-            Context.Abort();
-            return;
-        }
-
-        if (string.IsNullOrEmpty(slug))
-        {
-            _logger.LogWarning("Agent connection rejected — no slug from {Ip}",
                 httpContext?.Connection.RemoteIpAddress);
             Context.Abort();
             return;
@@ -70,18 +61,9 @@ public sealed class AgentHub : Hub
                 return;
             }
 
-            // Verify the user actually owns a listener with this slug
-            var ownsSlug = await db.Listeners.AnyAsync(l => l.Slug == slug && l.UserId == keyRecord.UserId);
-            if (!ownsSlug)
-            {
-                _logger.LogWarning("Agent connection rejected — user does not own slug '{Slug}'", slug);
-                Context.Abort();
-                return;
-            }
-
             keyRecord.LastUsedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
-            clientId = slug;
+            clientId = keyRecord.UserId;
             userId   = keyRecord.UserId;
         }
 
@@ -99,8 +81,8 @@ public sealed class AgentHub : Hub
 
         _registry.Register(agent);
 
-        _logger.LogInformation("Agent {ClientId} connected ({ConnectionId}) from {Ip}",
-            clientId, Context.ConnectionId, httpContext?.Connection.RemoteIpAddress);
+        _logger.LogInformation("Agent connected for user {UserId} ({ConnectionId}) from {Ip}",
+            userId, Context.ConnectionId, httpContext?.Connection.RemoteIpAddress);
 
         await _dashboard.Clients.Group(userId).SendAsync("AgentStatusChanged", agent);
         await base.OnConnectedAsync();

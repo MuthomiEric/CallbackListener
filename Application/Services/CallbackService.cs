@@ -100,7 +100,7 @@ public sealed class CallbackService : ICallbackService
             };
         }
 
-        var agent = _registry.GetByClientId(entry.Slug);
+        var agent = _registry.GetByClientId(entry.UserId);
 
         if (agent is { IsOnline: true })
         {
@@ -113,13 +113,13 @@ public sealed class CallbackService : ICallbackService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to deliver callback {Id} to agent {Slug}", entry.Id, entry.Slug);
+                _logger.LogWarning(ex, "Failed to deliver callback {Id} to agent for user {UserId}", entry.Id, entry.UserId);
                 return entry with { Status = CallbackStatus.Dropped, StatusDetail = "Delivery failed" };
             }
         }
 
-        var detail = agent is null ? "No agent registered for this slug" : "Agent is offline";
-        _logger.LogWarning("Callback {Id} dropped — {Detail} ({Slug})", entry.Id, detail, entry.Slug);
+        var detail = agent is null ? "No agent connected" : "Agent is offline";
+        _logger.LogWarning("Callback {Id} dropped — {Detail} (slug: {Slug})", entry.Id, detail, entry.Slug);
         return entry with { Status = CallbackStatus.Dropped, StatusDetail = detail };
     }
 }

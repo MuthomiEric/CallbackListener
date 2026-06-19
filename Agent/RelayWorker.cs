@@ -37,14 +37,9 @@ public sealed class RelayWorker : BackgroundService
             _logger.LogCritical("Agent:ServerUrl is not configured. Run with --help to see usage.");
             return;
         }
-        if (string.IsNullOrWhiteSpace(_options.ApiKey) || _options.ApiKey == "REPLACE_WITH_YOUR_API_KEY")
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
             _logger.LogCritical("Agent:ApiKey is not configured. Run 'CallbackAgent install --help' to see usage.");
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(_options.Slug))
-        {
-            _logger.LogCritical("Agent:Slug is not configured. Run 'CallbackAgent install --help' to see usage.");
             return;
         }
 
@@ -87,7 +82,7 @@ public sealed class RelayWorker : BackgroundService
 
     private HubConnection BuildConnection()
     {
-        var hubUrl = $"{_options.ServerUrl.TrimEnd('/')}/hubs/agents?apiKey={Uri.EscapeDataString(_options.ApiKey)}&slug={Uri.EscapeDataString(_options.Slug)}";
+        var hubUrl = $"{_options.ServerUrl.TrimEnd('/')}/hubs/agents?apiKey={Uri.EscapeDataString(_options.ApiKey)}";
 
         return new HubConnectionBuilder()
             .WithUrl(hubUrl)
