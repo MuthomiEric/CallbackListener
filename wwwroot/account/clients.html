@@ -44,7 +44,13 @@
         .user-menu-signout:hover { color: #ff6b78; background: rgba(255,71,87,0.08); }
 
         /* ── Content ── */
-        .content { max-width: 1000px; margin: 0 auto; padding: 30px 24px 60px; }
+        .content { max-width: 1000px; margin: 0 auto; padding: 30px 24px 40px; }
+
+        /* ── Footer ── */
+        footer { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 18px; border-top: 1px solid #1f1f1f; background: #0d0d0d; margin-top: 24px; }
+        .footer-brand { display: flex; align-items: center; gap: 7px; }
+        .footer-brand span { font-size: 11.5px; font-weight: 600; color: #5a5a5a; letter-spacing: -0.01em; }
+        .footer-copy { font-size: 11px; color: #5a5a5a; }
         .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; }
         h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 4px; }
         .page-sub { font-size: 13px; color: #8a8a8a; }
@@ -415,5 +421,17 @@ document.getElementById("copy-cmd-btn").addEventListener("click", () => {
 
 document.getElementById("done-btn").addEventListener("click", () => { closeModal(); render(); });
 </script>
+
+<footer>
+    <div class="footer-brand">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="1.4" fill="#00d4aa"/>
+        </svg>
+        <span>Callback Relay</span>
+    </div>
+    <span class="footer-copy">&copy; 2025 Erick Muthomi</span>
+</footer>
 </body>
 </html>

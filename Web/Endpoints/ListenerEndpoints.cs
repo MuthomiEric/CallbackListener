@@ -1,7 +1,7 @@
+using System.Security.Claims;
 using CallbackListener.Application.Interfaces;
 using CallbackListener.Domain;
 using CallbackListener.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -13,16 +13,16 @@ public static class ListenerEndpoints
     {
         var group = app.MapGroup("/api/apps").RequireAuthorization();
 
-        group.MapGet("/", async (HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IAgentRegistry registry, IMemoryCache cache) =>
+        group.MapGet("/", async (HttpContext ctx, AppDbContext db, IAgentRegistry registry, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var cacheKey = $"apps:{user.Id}";
+            var cacheKey = $"apps:{userId}";
             if (!cache.TryGetValue(cacheKey, out List<Listener>? rows))
             {
                 rows = await db.Listeners
-                    .Where(l => l.UserId == user.Id)
+                    .Where(l => l.UserId == userId)
                     .OrderByDescending(l => l.CreatedAt)
                     .ToListAsync();
                 cache.Set(cacheKey, rows, TimeSpan.FromSeconds(10));
@@ -43,10 +43,10 @@ public static class ListenerEndpoints
             }));
         });
 
-        group.MapPost("/", async (CreateListenerRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
+        group.MapPost("/", async (CreateListenerRequest req, HttpContext ctx, AppDbContext db, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             var slug = req.Slug.Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(slug))
@@ -55,16 +55,15 @@ public static class ListenerEndpoints
             if (await db.Listeners.AnyAsync(l => l.Slug == slug))
                 return Results.Conflict(new { error = "Slug already taken" });
 
-            // Validate client belongs to this user
             if (req.ClientId.HasValue)
             {
-                var ownsClient = await db.Clients.AnyAsync(c => c.Id == req.ClientId && c.UserId == user.Id);
+                var ownsClient = await db.Clients.AnyAsync(c => c.Id == req.ClientId && c.UserId == userId);
                 if (!ownsClient) return Results.BadRequest(new { error = "Invalid client" });
             }
 
             var listener = new Listener
             {
-                UserId   = user.Id,
+                UserId   = userId,
                 Slug     = slug,
                 Label    = req.Label.Trim(),
                 Scheme   = req.Scheme == "https" ? "https" : "http",
@@ -76,7 +75,7 @@ public static class ListenerEndpoints
 
             db.Listeners.Add(listener);
             await db.SaveChangesAsync();
-            cache.Remove($"apps:{user.Id}");
+            cache.Remove($"apps:{userId}");
 
             return Results.Created($"/api/apps/{listener.Id}", new
             {
@@ -92,12 +91,12 @@ public static class ListenerEndpoints
             });
         });
 
-        group.MapPut("/{id:guid}", async (Guid id, UpdateListenerRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateListenerRequest req, HttpContext ctx, AppDbContext db, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == id && l.UserId == user.Id);
+            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == id && l.UserId == userId);
             if (listener is null) return Results.NotFound();
 
             if (!string.IsNullOrWhiteSpace(req.Label))
@@ -109,7 +108,6 @@ public static class ListenerEndpoints
             if (req.BasePath is not null)
                 listener.BasePath = string.IsNullOrWhiteSpace(req.BasePath) ? "/" : req.BasePath.Trim();
 
-            // Update client link (null = unlink)
             if (req.ClientId is not null)
             {
                 if (req.ClientId == Guid.Empty)
@@ -118,14 +116,14 @@ public static class ListenerEndpoints
                 }
                 else
                 {
-                    var ownsClient = await db.Clients.AnyAsync(c => c.Id == req.ClientId && c.UserId == user.Id);
+                    var ownsClient = await db.Clients.AnyAsync(c => c.Id == req.ClientId && c.UserId == userId);
                     if (!ownsClient) return Results.BadRequest(new { error = "Invalid client" });
                     listener.ClientId = req.ClientId;
                 }
             }
 
             await db.SaveChangesAsync();
-            cache.Remove($"apps:{user.Id}");
+            cache.Remove($"apps:{userId}");
             return Results.Ok(new
             {
                 id       = listener.Id,
@@ -139,12 +137,12 @@ public static class ListenerEndpoints
             });
         });
 
-        group.MapPatch("/{id:guid}/mode", async (Guid id, ModeRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
+        group.MapPatch("/{id:guid}/mode", async (Guid id, ModeRequest req, HttpContext ctx, AppDbContext db, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == id && l.UserId == user.Id);
+            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == id && l.UserId == userId);
             if (listener is null) return Results.NotFound();
 
             if (!Enum.IsDefined(typeof(DeliveryMode), req.Mode))
@@ -152,21 +150,21 @@ public static class ListenerEndpoints
 
             listener.Mode = (DeliveryMode)req.Mode;
             await db.SaveChangesAsync();
-            cache.Remove($"apps:{user.Id}");
+            cache.Remove($"apps:{userId}");
             return Results.NoContent();
         });
 
-        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
+        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == id && l.UserId == user.Id);
+            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == id && l.UserId == userId);
             if (listener is null) return Results.NotFound();
 
             db.Listeners.Remove(listener);
             await db.SaveChangesAsync();
-            cache.Remove($"apps:{user.Id}");
+            cache.Remove($"apps:{userId}");
             return Results.NoContent();
         });
     }

@@ -388,9 +388,12 @@ document.getElementById("search")        .addEventListener("input",  renderCallb
 document.getElementById("filter-slug")   .addEventListener("change", renderCallbacks);
 document.getElementById("filter-status") .addEventListener("change", renderCallbacks);
 document.getElementById("clear-btn")     .addEventListener("click",  async () => {
-    await fetch("/api/callbacks", { method: "DELETE" });
+    const res = await fetch("/api/callbacks", { method: "DELETE" });
+    if (!res.ok) return;
     allCallbacks = [];
     expandedIds.clear();
     renderCallbacks();
     syncSlugFilter();
+    // Reconnect so server sends fresh (empty) History, keeping client in sync.
+    await connection.stop();
 });

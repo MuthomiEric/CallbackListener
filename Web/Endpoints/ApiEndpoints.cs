@@ -1,6 +1,5 @@
+using System.Security.Claims;
 using CallbackListener.Application.Interfaces;
-using Microsoft.AspNetCore.Identity;
-using CallbackListener.Domain;
 
 namespace CallbackListener.Web.Endpoints;
 
@@ -10,18 +9,18 @@ public static class ApiEndpoints
     {
         var api = app.MapGroup("/api").RequireAuthorization();
 
-        api.MapGet("/callbacks", async (HttpContext ctx, ICallbackStore store, UserManager<AppUser> userMgr, int count = 50) =>
+        api.MapGet("/callbacks", (HttpContext ctx, ICallbackStore store, int count = 50) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
-            return Results.Ok(store.GetRecent(Math.Clamp(count, 1, 200), user.Id));
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            return Results.Ok(store.GetRecent(Math.Clamp(count, 1, 200), userId));
         });
 
-        api.MapDelete("/callbacks", async (HttpContext ctx, ICallbackStore store, UserManager<AppUser> userMgr) =>
+        api.MapDelete("/callbacks", (HttpContext ctx, ICallbackStore store) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
-            store.Clear(user.Id);
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            store.Clear(userId);
             return Results.NoContent();
         });
 

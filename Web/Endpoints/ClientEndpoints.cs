@@ -1,9 +1,9 @@
+using System.Security.Claims;
 using System.Security.Cryptography;
 using CallbackListener.Application.Interfaces;
 using CallbackListener.Domain;
 using CallbackListener.Infrastructure.Data;
 using CallbackListener.Infrastructure.Security;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -15,16 +15,16 @@ public static class ClientEndpoints
     {
         var group = app.MapGroup("/api/clients").RequireAuthorization();
 
-        group.MapGet("/", async (HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IAgentRegistry registry, IMemoryCache cache) =>
+        group.MapGet("/", async (HttpContext ctx, AppDbContext db, IAgentRegistry registry, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var cacheKey = $"clients:{user.Id}";
+            var cacheKey = $"clients:{userId}";
             if (!cache.TryGetValue(cacheKey, out List<Client>? clients))
             {
                 clients = await db.Clients
-                    .Where(c => c.UserId == user.Id)
+                    .Where(c => c.UserId == userId)
                     .OrderByDescending(c => c.CreatedAt)
                     .ToListAsync();
                 cache.Set(cacheKey, clients, TimeSpan.FromSeconds(10));
@@ -41,10 +41,10 @@ public static class ClientEndpoints
             }));
         });
 
-        group.MapPost("/", async (CreateClientRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
+        group.MapPost("/", async (CreateClientRequest req, HttpContext ctx, AppDbContext db, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             if (string.IsNullOrWhiteSpace(req.Label))
                 return Results.BadRequest(new { error = "Label is required" });
@@ -52,7 +52,7 @@ public static class ClientEndpoints
             var rawKey = "cr_live_" + GenerateHex(32);
             var client = new Client
             {
-                UserId    = user.Id,
+                UserId    = userId,
                 Label     = req.Label.Trim(),
                 KeyHash   = KeyHasher.Hash(rawKey),
                 KeySuffix = rawKey[^4..],
@@ -60,7 +60,7 @@ public static class ClientEndpoints
 
             db.Clients.Add(client);
             await db.SaveChangesAsync();
-            cache.Remove($"clients:{user.Id}");
+            cache.Remove($"clients:{userId}");
 
             return Results.Ok(new
             {
@@ -72,17 +72,17 @@ public static class ClientEndpoints
             });
         });
 
-        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr, IMemoryCache cache) =>
+        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, IMemoryCache cache) =>
         {
-            var user = await userMgr.GetUserAsync(ctx.User);
-            if (user is null) return Results.Unauthorized();
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == id && c.UserId == user.Id);
+            var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
             if (client is null) return Results.NotFound();
 
             db.Clients.Remove(client);
             await db.SaveChangesAsync();
-            cache.Remove($"clients:{user.Id}");
+            cache.Remove($"clients:{userId}");
             return Results.NoContent();
         });
     }
