@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apps — Callback Relay</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: #0a0a0a;
+            color: #e6e6e6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            font-size: 13px;
+        }
+
+        ::selection { background: rgba(0,212,170,0.28); }
+        ::-webkit-scrollbar { width: 11px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; border: 3px solid #0a0a0a; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+        @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modal-in   { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }
+
+        /* ── Top bar ── */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            height: 52px;
+            padding: 0 18px;
+            background: #0d0d0d;
+            border-bottom: 1px solid #1f1f1f;
+        }
+
+        .brand { display: flex; align-items: center; gap: 10px; padding-right: 6px; }
+        .brand-name { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; }
+
+        nav { display: flex; align-items: center; gap: 2px; }
+
+        .nav-link {
+            font-size: 13px;
+            color: #8a8a8a;
+            text-decoration: none;
+            padding: 6px 11px;
+            border-radius: 6px;
+            transition: color 120ms, background 120ms;
+        }
+
+        .nav-link:hover  { color: #e6e6e6; background: #1a1a1a; }
+        .nav-link.active { color: #e6e6e6; background: #1a1a1a; }
+
+        .header-spacer { flex: 1; }
+
+        .avatar-wrap { position: relative; }
+
+        .avatar {
+            display: flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: #1a1a1a; border: 1px solid #2a2a2a;
+            color: #8a8a8a; font-size: 11px; font-weight: 600;
+            cursor: pointer; transition: color 120ms, background 120ms;
+        }
+
+        .avatar:hover { color: #e6e6e6; background: #222; }
+
+        .user-menu {
+            position: absolute; right: 0; top: calc(100% + 8px);
+            background: #111; border: 1px solid #2a2a2a; border-radius: 8px;
+            min-width: 172px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100;
+        }
+        .user-menu-email { padding: 10px 14px; font-size: 11px; color: #5a5a5a; border-bottom: 1px solid #1f1f1f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .user-menu-signout { display: block; width: 100%; padding: 9px 14px; background: none; border: none; color: #8a8a8a; font-size: 13px; font-family: inherit; text-align: left; cursor: pointer; transition: color 120ms, background 120ms; }
+        .user-menu-signout:hover { color: #ff6b78; background: rgba(255,71,87,0.08); }
+
+        /* ── Content ── */
+        .content { max-width: 1120px; margin: 0 auto; padding: 30px 24px 60px; }
+
+        .page-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 22px;
+        }
+
+        h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 4px; }
+        .page-sub { font-size: 13px; color: #8a8a8a; }
+
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            height: 38px;
+            padding: 0 15px;
+            background: #00d4aa;
+            color: #062d24;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 650;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 120ms;
+        }
+
+        .btn-primary:hover { background: #00e6b8; }
+
+        /* ── Table ── */
+        .table-shell {
+            border: 1px solid #1f1f1f;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #0d0d0d;
+        }
+
+        .table-head {
+            display: grid;
+            grid-template-columns: 1.2fr 1.4fr 1.2fr 120px 0.8fr 108px;
+            gap: 16px;
+            padding: 11px 18px;
+            border-bottom: 1px solid #1f1f1f;
+            background: #111;
+        }
+
+        .th {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            color: #6a6a6a;
+            text-transform: uppercase;
+        }
+
+        .table-body { display: flex; flex-direction: column; }
+
+        .row-wrap {
+            border-bottom: 1px solid #161616;
+            transition: background 120ms;
+        }
+
+        .row-wrap:hover { background: #131313; }
+        .row-wrap:last-child { border-bottom: none; }
+
+        .row-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1.4fr 1.2fr 120px 0.8fr 108px;
+            gap: 16px;
+            padding: 14px 18px;
+            align-items: center;
+        }
+
+        .mode-select {
+            height: 28px;
+            padding: 0 6px;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: #c6c6c6;
+            font-size: 11.5px;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+            width: 100%;
+            transition: border-color 120ms;
+        }
+        .mode-select:focus { border-color: #00d4aa; }
+        .mode-select option { background: #141414; }
+
+        .cell-slug  { font-size: 13px; color: #c4b5fd; font-family: "Consolas", monospace; font-weight: 500; }
+        .cell-label { font-size: 13px; color: #d6d6d6; }
+
+        .cell-relay {
+            font-size: 11.5px;
+            color: #5eead4;
+            font-family: "Consolas", monospace;
+            background: rgba(45,212,191,0.09);
+            padding: 4px 9px;
+            border-radius: 6px;
+            justify-self: start;
+            white-space: nowrap;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 4px 9px;
+            border-radius: 6px;
+            justify-self: start;
+            white-space: nowrap;
+        }
+
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+        .actions { display: flex; gap: 5px; }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 7px;
+            color: #8a8a8a;
+            cursor: pointer;
+            transition: background 120ms, color 120ms, border-color 120ms;
+        }
+
+        .icon-btn:hover { background: #1f1f1f; color: #e6e6e6; border-color: #333; }
+        .icon-btn.del:hover { background: rgba(255,71,87,0.12); color: #ff6b78; border-color: rgba(255,71,87,0.35); }
+
+        /* ── Modal ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 50;
+            animation: overlay-in 120ms ease;
+        }
+
+        .overlay.hidden { display: none; }
+
+        .modal {
+            width: 100%;
+            max-width: 480px;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 14px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+            animation: modal-in 180ms cubic-bezier(0.16,1,0.3,1);
+        }
+
+        .modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid #1f1f1f;
+        }
+
+        .modal-head h2 { font-size: 16px; font-weight: 650; }
+
+        .modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 15px; }
+
+        .modal-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 22px;
+            border-top: 1px solid #1f1f1f;
+        }
+
+        label { display: block; font-size: 12px; color: #9a9a9a; margin-bottom: 6px; }
+        .label-hint { color: #5a5a5a; }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            height: 40px;
+            padding: 0 12px;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: #e6e6e6;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 120ms, box-shadow 120ms;
+        }
+
+        input:focus, select:focus {
+            border-color: #00d4aa;
+            box-shadow: 0 0 0 3px rgba(0,212,170,0.1);
+        }
+
+        select option { background: #141414; }
+
+        .input-mono { font-family: "Consolas", monospace; color: #c4b5fd; }
+        .input-mono-neutral { font-family: "Consolas", monospace; color: #d6d6d6; }
+
+        .row-3 { display: flex; gap: 12px; }
+        .row-3 .w110 { width: 110px; flex-shrink: 0; }
+        .row-3 .flex1 { flex: 1; }
+
+        .preview-panel {
+            background: #0c0c0c;
+            border: 1px solid #1c1c1c;
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .preview-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #5a5a5a; text-transform: uppercase; margin-bottom: 4px; }
+        .preview-val { font-size: 12px; font-family: "Consolas", monospace; word-break: break-all; }
+        .preview-val.relay   { color: #5eead4; }
+
+        .btn-ghost {
+            height: 38px;
+            padding: 0 16px;
+            background: transparent;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: #b6b6b6;
+            font-size: 13px;
+            font-weight: 550;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 120ms, color 120ms;
+        }
+
+        .btn-ghost:hover { background: #1a1a1a; color: #c6c6c6; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="1.6" fill="#00d4aa"/>
+        </svg>
+        <span class="brand-name">Callback Relay</span>
+    </div>
+    <nav>
+        <a href="/" class="nav-link">Feed</a>
+        <a href="apps.html" class="nav-link active">Apps</a>
+        <a href="keys.html" class="nav-link">API Keys</a>
+    </nav>
+    <div class="header-spacer"></div>
+    <div class="avatar-wrap" id="avatar-wrap">
+        <button class="avatar" id="avatar-el">…</button>
+        <div class="user-menu" id="user-menu" hidden>
+            <div class="user-menu-email" id="user-menu-email"></div>
+            <button class="user-menu-signout" id="signout-btn">Sign out</button>
+        </div>
+    </div>
+</header>
+
+<div class="content">
+    <div class="page-head">
+        <div>
+            <h1>Apps</h1>
+            <p class="page-sub" id="page-sub">— registered · — active</p>
+        </div>
+        <button class="btn-primary" id="add-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5 L12 19 M5 12 L19 12" stroke="#062d24" stroke-width="2.2" stroke-linecap="round"/></svg>
+            Add app
+        </button>
+    </div>
+
+    <div class="table-shell">
+        <div class="table-head">
+            <span class="th">Slug</span>
+            <span class="th">Label</span>
+            <span class="th">Relay target</span>
+            <span class="th">Mode</span>
+            <span class="th">Status</span>
+            <span class="th">Actions</span>
+        </div>
+        <div class="table-body" id="table-body"></div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay hidden" id="overlay">
+    <div class="modal" id="modal">
+        <div class="modal-head">
+            <h2>Add app</h2>
+            <button class="icon-btn" id="modal-close-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div>
+                <label>Label</label>
+                <input type="text" id="f-label" placeholder="Stripe Production">
+            </div>
+            <div>
+                <label>Slug <span class="label-hint">· auto-generated, editable</span></label>
+                <input type="text" id="f-slug" placeholder="stripe-production" class="input-mono">
+            </div>
+            <div class="row-3">
+                <div class="w110">
+                    <label>Scheme</label>
+                    <select id="f-scheme" class="input-mono-neutral">
+                        <option value="http">http</option>
+                        <option value="https">https</option>
+                    </select>
+                </div>
+                <div class="flex1">
+                    <label>Port</label>
+                    <input type="text" id="f-port" placeholder="4000" class="input-mono-neutral" inputmode="numeric">
+                </div>
+            </div>
+            <div>
+                <label>Delivery mode</label>
+                <select id="f-mode">
+                    <option value="2">Both — dashboard + forward to agent</option>
+                    <option value="0">Web only — dashboard display only</option>
+                    <option value="1">Local only — forward to agent only</option>
+                </select>
+            </div>
+            <div class="preview-panel">
+                <div>
+                    <div class="preview-label">Relays to</div>
+                    <div class="preview-val relay" id="preview-relay"></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-ghost" id="cancel-btn">Cancel</button>
+            <button class="btn-primary" id="save-btn">Create app</button>
+        </div>
+    </div>
+</div>
+
+<script>
+"use strict";
+
+let apps      = [];
+let slugEdited = false;
+
+function slugify(s) {
+    return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function relayOf(a) {
+    return `${a.scheme}://localhost:${a.port}`;
+}
+
+function esc(s) {
+    return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ── Auth + load ───────────────────────────────────────────────────────────────
+(async () => {
+    const meRes = await fetch("/auth/me");
+    if (!meRes.ok) { window.location.replace("/account/login.html"); return; }
+    const me = await meRes.json();
+    document.getElementById("avatar-el").textContent = me.initials;
+    document.getElementById("user-menu-email").textContent = me.email;
+    await loadApps();
+})();
+
+document.getElementById("avatar-el").addEventListener("click", e => {
+    e.stopPropagation();
+    const menu = document.getElementById("user-menu");
+    menu.hidden = !menu.hidden;
+});
+document.addEventListener("click", () => { document.getElementById("user-menu").hidden = true; });
+document.getElementById("signout-btn").addEventListener("click", async () => {
+    await fetch("/auth/logout", { method: "POST" });
+    location.replace("login.html");
+});
+
+async function loadApps() {
+    const res = await fetch("/api/apps");
+    if (!res.ok) {
+        console.error("Failed to load apps:", res.status, res.statusText);
+        return;
+    }
+    apps = await res.json();
+    render();
+}
+
+// ── Render table ──────────────────────────────────────────────────────────────
+function render() {
+    const body = document.getElementById("table-body");
+    body.innerHTML = "";
+
+    const active = apps.filter(a => a.isActive).length;
+    document.getElementById("page-sub").textContent =
+        `${apps.length} registered · ${active} active`;
+
+    apps.forEach(a => {
+        const relay = relayOf(a);
+
+        const statusBg    = a.isActive ? "rgba(0,214,143,0.12)" : "#1a1a1a";
+        const statusColor = a.isActive ? "#34e0a8" : "#7a7a7a";
+        const dotColor    = a.isActive ? "#00d68f" : "#4a4a4a";
+        const statusLabel = a.isActive ? "Active" : "Inactive";
+
+        const row = document.createElement("div");
+        row.className = "row-wrap";
+        row.innerHTML = `
+            <div class="row-grid">
+                <span class="cell-slug">${esc(a.slug)}</span>
+                <span class="cell-label">${esc(a.label)}</span>
+                <span class="cell-relay">${esc(relay)}</span>
+                <select class="mode-select">
+                    <option value="0" ${a.mode === 0 ? "selected" : ""}>Web only</option>
+                    <option value="1" ${a.mode === 1 ? "selected" : ""}>Local only</option>
+                    <option value="2" ${a.mode === 2 ? "selected" : ""}>Both</option>
+                </select>
+                <span class="badge-status" style="background:${statusBg};color:${statusColor};">
+                    <span class="status-dot" style="background:${dotColor};"></span>
+                    ${statusLabel}
+                </span>
+                <div class="actions">
+                    <button class="icon-btn del" title="Delete">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 7 L19 7 M10 4 L14 4 M6 7 L7 20 L17 20 L18 7 M10 11 L10 16 M14 11 L14 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+            </div>
+            `;
+
+        row.querySelector(".del").addEventListener("click", () => deleteApp(a.id));
+        row.querySelector(".mode-select").addEventListener("change", async e => {
+            await fetch(`/api/apps/${a.id}/mode`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: parseInt(e.target.value) }),
+            });
+        });
+
+        body.appendChild(row);
+    });
+}
+
+async function deleteApp(id) {
+    const res = await fetch(`/api/apps/${id}`, { method: "DELETE" });
+    if (res.ok || res.status === 204) {
+        apps = apps.filter(a => a.id !== id);
+        render();
+    }
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+const overlay  = document.getElementById("overlay");
+const fLabel   = document.getElementById("f-label");
+const fSlug    = document.getElementById("f-slug");
+const fScheme  = document.getElementById("f-scheme");
+const fPort    = document.getElementById("f-port");
+const fMode    = document.getElementById("f-mode");
+
+function openModal() {
+    slugEdited = false;
+    fLabel.value = ""; fSlug.value = ""; fScheme.value = "http";
+    fPort.value  = ""; fMode.value = "2";
+    updatePreview();
+    overlay.classList.remove("hidden");
+    fLabel.focus();
+}
+
+function closeModal() { overlay.classList.add("hidden"); }
+
+function updatePreview() {
+    const port = fPort.value.trim() || "4000";
+    document.getElementById("preview-relay").textContent = `${fScheme.value}://localhost:${port}`;
+}
+
+fLabel.addEventListener("input", () => {
+    if (!slugEdited) fSlug.value = slugify(fLabel.value);
+    updatePreview();
+});
+fSlug.addEventListener("input", () => { slugEdited = true; updatePreview(); });
+fScheme.addEventListener("change", updatePreview);
+fPort.addEventListener("input", () => { fPort.value = fPort.value.replace(/[^0-9]/g, ""); updatePreview(); });
+
+document.getElementById("add-btn").addEventListener("click", openModal);
+document.getElementById("modal-close-btn").addEventListener("click", closeModal);
+document.getElementById("cancel-btn").addEventListener("click", closeModal);
+overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(); });
+
+document.getElementById("save-btn").addEventListener("click", async () => {
+    const slug = fSlug.value.trim();
+    if (!slug) { fSlug.focus(); return; }
+
+    const saveBtn = document.getElementById("save-btn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Creating…";
+
+    const res = await fetch("/api/apps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            slug,
+            label:  fLabel.value.trim() || slug,
+            scheme: fScheme.value,
+            port:   parseInt(fPort.value.trim()) || 4000,
+            mode:   parseInt(fMode.value),
+        }),
+    });
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Create app";
+
+    if (res.ok || res.status === 201) {
+        const created = await res.json();
+        apps.unshift(created);
+        closeModal();
+        render();
+    } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Failed to create app.");
+    }
+});
+</script>
+</body>
+</html>

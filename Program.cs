@@ -1,7 +1,14 @@
-using System.Collections.Concurrent;
-using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
+using System.Threading.RateLimiting;
+using CallbackListener.Application.Interfaces;
+using CallbackListener.Application.Services;
+using CallbackListener.Configuration;
+using CallbackListener.Domain;
+using CallbackListener.Infrastructure.Data;
+using CallbackListener.Infrastructure.Hubs;
+using CallbackListener.Web.Endpoints;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting.Systemd;
 using Microsoft.Extensions.Hosting.WindowsServices;
 
@@ -13,363 +20,137 @@ var options = new WebApplicationOptions
 
 var builder = WebApplication.CreateBuilder(options);
 
+// ── Host ──────────────────────────────────────────────────────────────────────
 if (OperatingSystem.IsWindows())
-{
     builder.Host.UseWindowsService();
-}
 else if (OperatingSystem.IsLinux())
-{
     builder.Host.UseSystemd();
-}
 
 builder.WebHost.UseUrls("http://0.0.0.0:5055");
 
+// ── Configuration ─────────────────────────────────────────────────────────────
+var section = builder.Configuration.GetSection(AppOptions.SectionName);
+builder.Services.Configure<AppOptions>(section);
+
+// ── Database ──────────────────────────────────────────────────────────────────
+builder.Services.AddDbContext<AppDbContext>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+// ── Identity ──────────────────────────────────────────────────────────────────
+builder.Services
+    .AddIdentityCore<AppUser>(opt =>
+    {
+        opt.Password.RequireDigit           = false;
+        opt.Password.RequireNonAlphanumeric = false;
+        opt.Password.RequiredLength         = 8;
+        opt.Password.RequireUppercase       = false;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddSignInManager();
+
+// ── Authentication ────────────────────────────────────────────────────────────
+var authBuilder = builder.Services
+    .AddAuthentication(IdentityConstants.ApplicationScheme);
+
+authBuilder.AddIdentityCookies();
+
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+if (!string.IsNullOrEmpty(googleClientId))
+{
+    authBuilder.AddGoogle(opt =>
+    {
+        opt.ClientId     = googleClientId;
+        opt.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+        // Must match the redirect URI registered in Google Cloud Console exactly
+        opt.CallbackPath = "/auth/google/callback";
+        // Without this, the OAuth handler uses DefaultSignInScheme (application cookie)
+        // instead of the external cookie — GetExternalLoginInfoAsync() then returns null.
+        opt.SignInScheme = Microsoft.AspNetCore.Identity.IdentityConstants.ExternalScheme;
+    });
+}
+
+builder.Services.AddAuthorization();
+
+// ── Application Services ──────────────────────────────────────────────────────
+builder.Services.AddSingleton<ICallbackStore, CallbackStore>();
+builder.Services.AddSingleton<IAgentRegistry, AgentRegistry>();
+builder.Services.AddSingleton<ICallbackService, CallbackService>();
+
+// ── SignalR ───────────────────────────────────────────────────────────────────
+builder.Services
+    .AddSignalR(o => { o.MaximumReceiveMessageSize = 512 * 1024; })
+    .AddJsonProtocol(o =>
+    {
+        o.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        o.PayloadSerializerOptions.DefaultIgnoreCondition =
+            System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
+
+// ── Rate Limiting ─────────────────────────────────────────────────────────────
+var rateLimitPerMinute = section.GetValue<int>(nameof(AppOptions.RateLimitPerMinute), 120);
+
+builder.Services.AddRateLimiter(rl =>
+{
+    rl.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window      = TimeSpan.FromMinutes(1),
+                PermitLimit = rateLimitPerMinute,
+                QueueLimit  = 0
+            }));
+
+    rl.RejectionStatusCode = 429;
+    rl.OnRejected = async (ctx, _) =>
+    {
+        ctx.HttpContext.Response.ContentType = "application/json";
+        await ctx.HttpContext.Response.WriteAsJsonAsync(new { error = "Rate limit exceeded." });
+    };
+});
+
+// ── JSON for minimal API responses ────────────────────────────────────────────
+builder.Services.ConfigureHttpJsonOptions(o =>
+{
+    o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    o.SerializerOptions.DefaultIgnoreCondition =
+        System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+});
+
+// ── Build ─────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-var sockets =
-    new ConcurrentDictionary<Guid, WebSocket>();
-
-app.UseWebSockets();
-
-app.MapGet("/", async context =>
+// ── DB init ───────────────────────────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
 {
-    context.Response.ContentType = "text/html";
-
-    await context.Response.WriteAsync("""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Callback Listener</title>
-
-    <style>
-
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-            background: #111;
-            color: white;
-        }
-
-        h1 {
-            margin-bottom: 10px;
-        }
-
-        .topbar {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        #status {
-            padding: 5px 10px;
-            border-radius: 6px;
-            background: #333;
-        }
-
-        button {
-            background: #222;
-            color: white;
-            border: 1px solid #444;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #333;
-        }
-
-        #container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .card {
-            background: #1b1b1b;
-            border: 1px solid #333;
-            border-radius: 10px;
-            padding: 20px;
-        }
-
-        .time {
-            color: #00ff99;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-
-        pre {
-            margin: 0;
-            overflow: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: #00ff00;
-        }
-
-        .empty {
-            color: #888;
-        }
-
-    </style>
-</head>
-<body>
-
-<h1>Live Callback Listener</h1>
-
-<div class="topbar">
-
-    <div id="status">
-        Connecting...
-    </div>
-
-    <button onclick="clearCallbacks()">
-        Clear
-    </button>
-
-</div>
-
-<div id="container">
-
-    <div class="empty" id="empty">
-        Waiting for callbacks...
-    </div>
-
-</div>
-
-<script>
-
-const container =
-    document.getElementById("container");
-
-const statusElement =
-    document.getElementById("status");
-
-const emptyElement =
-    document.getElementById("empty");
-
-function clearCallbacks() {
-
-    container.innerHTML = "";
-
-    container.appendChild(emptyElement);
-
-    emptyElement.style.display = "block";
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
 }
 
-function addCallback(data) {
+// ── Middleware Pipeline ───────────────────────────────────────────────────────
+app.UseRateLimiter();
+app.UseDefaultFiles();
+app.UseStaticFiles();   // serves wwwroot files before routing touches anything
+app.UseRouting();       // explicit placement so catch-all never races with static files
+app.UseAuthentication();
+app.UseAuthorization();
 
-    emptyElement.style.display = "none";
+// ── Hubs ──────────────────────────────────────────────────────────────────────
+app.MapHub<DashboardHub>("/hubs/dashboard");
+app.MapHub<AgentHub>("/hubs/agents");
 
-    const card =
-        document.createElement("div");
+// ── Endpoints ─────────────────────────────────────────────────────────────────
+app.MapAuthEndpoints();
+app.MapListenerEndpoints();
+app.MapKeyEndpoints();
+app.MapCallbackEndpoints();
+app.MapApiEndpoints();
 
-    card.className = "card";
-
-    const time =
-        document.createElement("div");
-
-    time.className = "time";
-
-    time.textContent =
-        new Date().toLocaleString();
-
-    const pre =
-        document.createElement("pre");
-
-    pre.textContent =
-        JSON.stringify(data, null, 2);
-
-    card.appendChild(time);
-
-    card.appendChild(pre);
-
-    container.prepend(card);
-}
-
-function connectWebSocket() {
-
-    const protocol =
-        location.protocol === "https:"
-        ? "wss"
-        : "ws";
-
-    const ws =
-        new WebSocket(
-            `${protocol}://${location.host}/ws`
-        );
-
-    ws.onopen = () => {
-
-        statusElement.textContent =
-            "Connected";
-
-        statusElement.style.background =
-            "#14532d";
-    };
-
-    ws.onmessage = (event) => {
-
-        const data =
-            JSON.parse(event.data);
-
-        addCallback(data);
-    };
-
-    ws.onclose = () => {
-
-        statusElement.textContent =
-            "Disconnected - reconnecting...";
-
-        statusElement.style.background =
-            "#7f1d1d";
-
-        setTimeout(connectWebSocket, 2000);
-    };
-
-    ws.onerror = () => {
-
-        ws.close();
-    };
-}
-
-connectWebSocket();
-
-</script>
-
-</body>
-</html>
-""");
-});
-
-app.Map("/ws", async context =>
-{
-    if (!context.WebSockets.IsWebSocketRequest)
-    {
-        context.Response.StatusCode = 400;
-        return;
-    }
-
-    var socket =
-        await context.WebSockets.AcceptWebSocketAsync();
-
-    var socketId =
-        Guid.NewGuid();
-
-    sockets.TryAdd(socketId, socket);
-
-    var buffer =
-        new byte[1024];
-
-    try
-    {
-        while (socket.State == WebSocketState.Open)
-        {
-            var result =
-                await socket.ReceiveAsync(
-                    buffer,
-                    CancellationToken.None);
-
-            if (result.MessageType ==
-                WebSocketMessageType.Close)
-            {
-                break;
-            }
-        }
-    }
-    catch
-    {
-    }
-    finally
-    {
-        sockets.TryRemove(socketId, out _);
-
-        try
-        {
-            if (socket.State == WebSocketState.Open ||
-                socket.State == WebSocketState.CloseReceived)
-            {
-                await socket.CloseAsync(
-                    WebSocketCloseStatus.NormalClosure,
-                    "Closed",
-                    CancellationToken.None);
-            }
-        }
-        catch
-        {
-        }
-
-        socket.Dispose();
-    }
-});
-
-app.MapPost("/callback/{**path}", async context =>
-{
-    var path = context.Request.RouteValues["path"]?.ToString();
-
-    using var reader = new StreamReader(context.Request.Body);
-    var body = await reader.ReadToEndAsync();
-
-    object parsedBody;
-
-    try
-    {
-        parsedBody = JsonSerializer.Deserialize<object>(body)!;
-    }
-    catch
-    {
-        parsedBody = body;
-    }
-
-    var payload = new
-    {
-        timestamp = DateTime.UtcNow,
-        path,
-        query = context.Request.Query.ToDictionary(x => x.Key, x => x.Value.ToString()),
-        body = parsedBody
-    };
-
-    var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
-    {
-        WriteIndented = true
-    });
-
-    var bytes = Encoding.UTF8.GetBytes(json);
-
-    foreach (var socket in sockets)
-    {
-        try
-        {
-            if (socket.Value.State == WebSocketState.Open)
-            {
-                await socket.Value.SendAsync(
-                    bytes,
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None);
-            }
-        }
-        catch
-        {
-        }
-    }
-
-    await context.Response.WriteAsJsonAsync(new
-    {
-        success = true,
-        receivedPath = path,
-        connectedClients = sockets.Count
-    });
-});
-
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
 app.Lifetime.ApplicationStarted.Register(() =>
-{
-    Console.WriteLine("Callback Listener started successfully");
-});
+    app.Logger.LogInformation("CallbackListener started — http://0.0.0.0:5055"));
 
 app.Lifetime.ApplicationStopping.Register(() =>
-{
-    Console.WriteLine("Application stopping...");
-});
+    app.Logger.LogInformation("CallbackListener stopping..."));
 
 app.Run();

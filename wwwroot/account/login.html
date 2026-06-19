@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in — Callback Relay</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: radial-gradient(900px 600px at 50% -10%, #131313 0%, #0a0a0a 60%);
+            color: #e6e6e6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::selection { background: rgba(0,212,170,0.28); }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .brand-name { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+
+        .card {
+            width: 100%;
+            max-width: 384px;
+            background: #111;
+            border: 1px solid #232323;
+            border-radius: 12px;
+            padding: 30px 30px 26px;
+        }
+
+        h1 { margin: 0 0 5px; font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+        .sub { margin: 0 0 22px; font-size: 13px; color: #8a8a8a; line-height: 1.5; }
+
+        /* Google button */
+        .btn-google {
+            width: 100%;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #fff;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 120ms;
+        }
+
+        .btn-google:hover { background: #f5f5f5; }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 18px 0;
+        }
+
+        .divider-line { flex: 1; height: 1px; background: #232323; }
+
+        .btn-toggle {
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: #8a8a8a;
+            font-family: inherit;
+            cursor: pointer;
+            transition: color 120ms;
+            white-space: nowrap;
+        }
+
+        .btn-toggle:hover { color: #c6c6c6; }
+
+        /* Email form */
+        .email-form { display: flex; flex-direction: column; gap: 14px; }
+        .email-form.hidden { display: none; }
+
+        label { display: block; font-size: 12px; color: #9a9a9a; margin-bottom: 6px; }
+
+        .label-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+        .label-row label { margin-bottom: 0; }
+
+        .link { font-size: 12px; color: #6a6a6a; text-decoration: none; transition: color 120ms; }
+        .link:hover { color: #00d4aa; }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            height: 40px;
+            padding: 0 12px;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: #e6e6e6;
+            font-size: 14px;
+            font-family: "Consolas", "JetBrains Mono", monospace;
+            outline: none;
+            transition: border-color 120ms, box-shadow 120ms;
+        }
+
+        input:focus {
+            border-color: #00d4aa;
+            box-shadow: 0 0 0 3px rgba(0,212,170,0.12);
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: 42px;
+            margin-top: 2px;
+            background: #00d4aa;
+            color: #062d24;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 650;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 120ms;
+        }
+
+        .btn-primary:hover { background: #00e6b8; }
+
+        .footer-text {
+            margin: 22px 0 0;
+            font-size: 13px;
+            color: #6a6a6a;
+        }
+
+        .footer-link { color: #34e0a8; text-decoration: none; font-weight: 550; transition: color 120ms; }
+        .footer-link:hover { color: #00d4aa; }
+
+        .btn-google { text-decoration: none; }
+
+        .error-box {
+            display: none;
+            background: rgba(255,71,87,0.1);
+            border: 1px solid rgba(255,71,87,0.3);
+            border-radius: 8px;
+            padding: 10px 13px;
+            font-size: 13px;
+            color: #ff6b78;
+        }
+    </style>
+</head>
+<body>
+
+<div class="brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="12" cy="12" r="1.6" fill="#00d4aa"/>
+    </svg>
+    <span class="brand-name">Callback Relay</span>
+</div>
+
+<div class="card">
+    <h1>Sign in</h1>
+    <p class="sub">Welcome back. Connect your listeners and watch callbacks flow.</p>
+
+    <a href="/auth/google" class="btn-google" id="google-btn">
+        <svg width="17" height="17" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 4.75 12 4.75z"/>
+        </svg>
+        Continue with Google
+    </a>
+
+    <div class="divider">
+        <div class="divider-line"></div>
+        <button class="btn-toggle" id="toggle-btn">or use email</button>
+        <div class="divider-line"></div>
+    </div>
+
+    <div class="email-form hidden" id="email-form">
+        <div id="error-box" class="error-box"></div>
+        <div>
+            <label>Email</label>
+            <input type="email" id="f-email" placeholder="you@company.dev" autocomplete="email">
+        </div>
+        <div>
+            <div class="label-row">
+                <label>Password</label>
+                <a href="#" class="link">Forgot?</a>
+            </div>
+            <input type="password" id="f-password" placeholder="••••••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn-primary" id="signin-btn">Sign in</button>
+    </div>
+</div>
+
+<p class="footer-text">New here? <a href="register.html" class="footer-link">Create an account</a></p>
+
+<script>
+"use strict";
+const toggleBtn = document.getElementById("toggle-btn");
+const form      = document.getElementById("email-form");
+const errorBox  = document.getElementById("error-box");
+let visible = false;
+
+// Redirect if already signed in
+fetch("/auth/me").then(r => { if (r.ok) window.location.replace("/"); });
+
+// Check for error param from Google callback
+if (new URLSearchParams(location.search).get("error"))
+    showError("Google sign-in failed. Please try again or use email.");
+
+toggleBtn.addEventListener("click", () => {
+    visible = !visible;
+    form.classList.toggle("hidden", !visible);
+    toggleBtn.textContent = visible ? "hide email sign-in" : "or use email";
+});
+
+document.getElementById("signin-btn").addEventListener("click", signIn);
+document.getElementById("f-password").addEventListener("keydown", e => {
+    if (e.key === "Enter") signIn();
+});
+
+async function signIn() {
+    const email    = document.getElementById("f-email").value.trim();
+    const password = document.getElementById("f-password").value;
+    if (!email || !password) { showError("Please enter your email and password."); return; }
+
+    const btn = document.getElementById("signin-btn");
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+    hideError();
+
+    try {
+        const res = await fetch("/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+        });
+
+        if (res.ok) {
+            window.location.replace("/");
+        } else {
+            showError("Invalid email or password.");
+            btn.disabled = false;
+            btn.textContent = "Sign in";
+        }
+    } catch {
+        showError("Network error — please try again.");
+        btn.disabled = false;
+        btn.textContent = "Sign in";
+    }
+}
+
+function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = "block";
+    if (form.classList.contains("hidden")) {
+        visible = true;
+        form.classList.remove("hidden");
+        toggleBtn.textContent = "hide email sign-in";
+    }
+}
+
+function hideError() { errorBox.style.display = "none"; }
+</script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #0a0a0a; }
+  ::selection { background: rgba(0,212,170,0.28); }
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; border: 3px solid #0a0a0a; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+  @keyframes pulse-dot {
+    0% { box-shadow: 0 0 0 0 rgba(0,214,143,0.5); }
+    70% { box-shadow: 0 0 0 6px rgba(0,214,143,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,214,143,0); }
+  }
+  .cr-navlink:hover { color: #e6e6e6 !important; background: #1a1a1a !important; }
+  .cr-card-head:hover { background: #161616 !important; }
+  .cr-clear:hover { border-color: #ff4757 !important; color: #ff6b78 !important; }
+  .cr-input:focus { border-color: #00d4aa !important; outline: none; }
+  .cr-select:focus { border-color: #00d4aa !important; outline: none; }
+</style>
+</helmet>
+
+<div style="font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #e6e6e6; min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased;">
+
+  <!-- ===== Top bar ===== -->
+  <header style="display: flex; align-items: center; gap: 24px; height: 52px; padding: 0 18px; border-bottom: 1px solid #1f1f1f; background: #0d0d0d; flex: none;">
+    <div style="display: flex; align-items: center; gap: 10px; padding-right: 6px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="flex:none;">
+        <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle cx="12" cy="12" r="1.6" fill="#00d4aa"></circle>
+      </svg>
+      <span style="font-size: 14px; font-weight: 650; letter-spacing: -0.01em;">Callback Relay</span>
+    </div>
+    <nav style="display: flex; align-items: center; gap: 2px;">
+      <a href="Dashboard.dc.html" class="cr-navlink" style="font-size: 13px; color: #e6e6e6; text-decoration: none; padding: 6px 11px; border-radius: 6px; background: #1a1a1a; transition: all 120ms;">Feed</a>
+      <a href="Listeners.dc.html" class="cr-navlink" style="font-size: 13px; color: #8a8a8a; text-decoration: none; padding: 6px 11px; border-radius: 6px; transition: all 120ms;">Listeners</a>
+      <a href="Keys.dc.html" class="cr-navlink" style="font-size: 13px; color: #8a8a8a; text-decoration: none; padding: 6px 11px; border-radius: 6px; transition: all 120ms;">API Keys</a>
+    </nav>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; gap: 7px; padding: 5px 11px 5px 9px; border-radius: 20px; background: {{ conn.bg }}; border: 1px solid {{ conn.border }};">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ conn.dot }}; flex: none;"></span>
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.03em; color: {{ conn.text }};">{{ conn.label }}</span>
+    </div>
+    <a href="Login.dc.html" class="cr-navlink" style="display:flex; align-items:center; justify-content:center; width: 30px; height: 30px; border-radius: 50%; background: #1a1a1a; border: 1px solid #2a2a2a; color: #8a8a8a; text-decoration: none; font-size: 12px; font-weight: 600;">EM</a>
+  </header>
+
+  <div style="display: flex; flex: 1; min-height: 0;">
+
+    <!-- ===== Sidebar ===== -->
+    <aside style="width: 252px; flex: none; border-right: 1px solid #1f1f1f; background: #0c0c0c; display: flex; flex-direction: column; overflow-y: auto;">
+      <div style="padding: 18px 16px 10px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; color: #6a6a6a; text-transform: uppercase;">Listeners</span>
+        <span style="font-size: 11px; color: #5a5a5a; font-family: 'JetBrains Mono', monospace;">{{ onlineCount }}/{{ agents.length }}</span>
+      </div>
+      <div style="padding: 0 8px 12px; display: flex; flex-direction: column; gap: 1px;">
+        <sc-for list="{{ agents }}" as="agent" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 7px; cursor: default;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: {{ agent.dotColor }}; flex: none; animation: {{ agent.anim }};"></span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 550; color: {{ agent.nameColor }}; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ agent.slug }}</div>
+              <div style="font-size: 11px; color: #5a5a5a; margin-top: 2px;">{{ agent.statusText }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </aside>
+
+    <!-- ===== Main feed ===== -->
+    <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #0a0a0a;">
+
+      <!-- toolbar -->
+      <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid #1f1f1f; background: #0c0c0c; flex: none;">
+        <div style="position: relative; width: 280px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none;"><circle cx="11" cy="11" r="7" stroke="#5a5a5a" stroke-width="1.8"></circle><path d="M21 21 L16.5 16.5" stroke="#5a5a5a" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          <input class="cr-input" type="text" placeholder="Search payloads, paths, IPs…" value="{{ search }}" onInput="{{ onSearch }}" style="width: 100%; height: 34px; padding: 0 12px 0 32px; background: #141414; border: 1px solid #2a2a2a; border-radius: 7px; color: #e6e6e6; font-size: 13px; font-family: inherit; transition: border-color 120ms;">
+        </div>
+        <select class="cr-select" value="{{ slugFilter }}" onChange="{{ onSlugFilter }}" style="height: 34px; padding: 0 10px; background: #141414; border: 1px solid #2a2a2a; border-radius: 7px; color: #c6c6c6; font-size: 13px; font-family: inherit; cursor: pointer; transition: border-color 120ms;">
+          <sc-for list="{{ slugOptions }}" as="opt" hint-placeholder-count="3">
+            <option value="{{ opt.value }}">{{ opt.label }}</option>
+          </sc-for>
+        </select>
+        <select class="cr-select" value="{{ statusFilter }}" onChange="{{ onStatusFilter }}" style="height: 34px; padding: 0 10px; background: #141414; border: 1px solid #2a2a2a; border-radius: 7px; color: #c6c6c6; font-size: 13px; font-family: inherit; cursor: pointer; transition: border-color 120ms;">
+          <sc-for list="{{ statusOptions }}" as="opt" hint-placeholder-count="4">
+            <option value="{{ opt.value }}">{{ opt.label }}</option>
+          </sc-for>
+        </select>
+        <div style="flex: 1;"></div>
+        <span style="font-size: 12px; color: #6a6a6a; font-family: 'JetBrains Mono', monospace; white-space: nowrap;">{{ countLabel }}</span>
+        <button class="cr-clear" onClick="{{ onClear }}" style="height: 34px; padding: 0 13px; background: transparent; border: 1px solid #2a2a2a; border-radius: 7px; color: #8a8a8a; font-size: 13px; font-family: inherit; cursor: pointer; transition: all 120ms; white-space: nowrap;">Clear</button>
+      </div>
+
+      <!-- feed -->
+      <div style="flex: 1; overflow-y: auto; padding: 14px 18px 40px;">
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="">
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 90px 20px; text-align: center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="margin-bottom: 16px; opacity: 0.5;"><path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#3a3a3a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#3a3a3a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <div style="font-size: 14px; color: #8a8a8a; margin-bottom: 5px;">{{ emptyTitle }}</div>
+            <div style="font-size: 12px; color: #5a5a5a;">{{ emptySub }}</div>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-direction: column; gap: 9px; max-width: 1080px;">
+          <sc-for list="{{ callbacks }}" as="cb" hint-placeholder-count="6">
+            <div class="cr-card" style="border: 1px solid {{ cb.cardBorder }}; border-radius: 9px; background: #111; overflow: hidden;">
+              <!-- header row -->
+              <div class="cr-card-head" onClick="{{ cb.onToggle }}" style="display: flex; align-items: center; gap: 11px; padding: 12px 14px; cursor: pointer; transition: background 120ms;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="flex: none; transition: transform 160ms; transform: {{ cb.caretRotate }};"><path d="M9 6 L15 12 L9 18" stroke="#6a6a6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                <span style="font-size: 11px; color: #6a6a6a; font-family: 'JetBrains Mono', monospace; white-space: nowrap; width: 64px; flex: none;">{{ cb.time }}</span>
+                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; flex: none; background: {{ cb.statusBg }}; color: {{ cb.statusColor }};">{{ cb.status }}</span>
+                <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 11px; flex: none; background: rgba(167,139,250,0.13); color: #c4b5fd; font-family: 'JetBrains Mono', monospace;">{{ cb.slug }}</span>
+                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 5px; flex: none; background: #1e1e1e; color: #b6b6b6; font-family: 'JetBrains Mono', monospace;">{{ cb.method }}</span>
+                <span style="font-size: 13px; color: #d6d6d6; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{ cb.path }}</span>
+                <sc-if value="{{ cb.hasRelay }}" hint-placeholder-val="">
+                  <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 10px; padding: 3px 8px; border-radius: 5px; flex: none; background: rgba(45,212,191,0.1); color: #5eead4; font-family: 'JetBrains Mono', monospace;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 12 L20 12 M14 6 L20 12 L14 18" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{ cb.relayTarget }}</span>
+                </sc-if>
+                <div style="flex: 1;"></div>
+                <span style="font-size: 11px; color: #5a5a5a; font-family: 'JetBrains Mono', monospace; white-space: nowrap; flex: none;">{{ cb.sourceIp }}</span>
+              </div>
+              <!-- dropped notice -->
+              <sc-if value="{{ cb.isDropped }}" hint-placeholder-val="">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(255,71,87,0.08); border-top: 1px solid rgba(255,71,87,0.18);">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none;"><path d="M12 8 L12 13 M12 16 L12 16.5" stroke="#ff6b78" stroke-width="2" stroke-linecap="round"></path><circle cx="12" cy="12" r="9" stroke="#ff6b78" stroke-width="1.6"></circle></svg>
+                  <span style="font-size: 12px; color: #ff8c96;">{{ cb.droppedReason }}</span>
+                </div>
+              </sc-if>
+              <!-- expanded body -->
+              <sc-if value="{{ cb.expanded }}" hint-placeholder-val="">
+                <div style="border-top: 1px solid #1f1f1f; background: #0c0c0c;">
+                  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 14px; border-bottom: 1px solid #1a1a1a; flex-wrap: wrap;">
+                    <span style="font-size: 11px; color: #5a5a5a;">content-type <span style="color: #9a9a9a; font-family: 'JetBrains Mono', monospace;">application/json</span></span>
+                    <span style="font-size: 11px; color: #5a5a5a;">bytes <span style="color: #9a9a9a; font-family: 'JetBrains Mono', monospace;">{{ cb.bytes }}</span></span>
+                    <span style="font-size: 11px; color: #5a5a5a;">id <span style="color: #9a9a9a; font-family: 'JetBrains Mono', monospace;">{{ cb.evtId }}</span></span>
+                  </div>
+                  <pre style="margin: 0; padding: 14px 16px; font-size: 12.5px; line-height: 1.6; font-family: 'JetBrains Mono', monospace; color: #4ade80; overflow-x: auto; white-space: pre;">{{ cb.json }}</pre>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    search: "",
+    slugFilter: "all",
+    statusFilter: "all",
+    expanded: {},
+  };
+
+  agents = [
+    { slug: "stripe-prod", online: true, ago: "2 min ago" },
+    { slug: "github-ci", online: true, ago: "11 min ago" },
+    { slug: "shopify-store", online: true, ago: "just now" },
+    { slug: "twilio-sms", online: false, ago: null },
+    { slug: "sendgrid-mail", online: true, ago: "34 min ago" },
+    { slug: "linear-sync", online: false, ago: null },
+  ];
+
+  raw = [
+    { id: 1, time: "14:32:09", status: "Routed", slug: "stripe-prod", method: "POST", path: "/charge.succeeded", relay: "localhost:4000", ip: "54.187.205.235", evtId: "evt_3PqL9x", payload: { id: "evt_3PqL9x2eZvKYlo2C", type: "charge.succeeded", data: { object: { id: "ch_3PqL9x", amount: 4200, currency: "usd", paid: true, customer: "cus_Qk2Vd" } } } },
+    { id: 2, time: "14:31:54", status: "Routed", slug: "github-ci", method: "POST", path: "/push", relay: "localhost:4000", ip: "140.82.115.94", evtId: "ev_d91af2", payload: { ref: "refs/heads/main", pusher: { name: "erick" }, repository: { name: "callback-relay", full_name: "erick/callback-relay" }, commits: 3 } },
+    { id: 3, time: "14:31:20", status: "Dropped", slug: "twilio-sms", method: "POST", path: "/message.status", relay: null, ip: "54.172.60.16", reason: "Agent offline — listener \u2018twilio-sms\u2019 is not connected", evtId: "SM8f0c1a", payload: { MessageSid: "SM8f0c1a", MessageStatus: "delivered", To: "+14155552671", From: "+14155550123" } },
+    { id: 4, time: "14:30:47", status: "Received", slug: "shopify-store", method: "POST", path: "/orders/create", relay: null, ip: "23.227.38.65", evtId: "ord_55821", payload: { id: 55821, email: "buyer@example.com", total_price: "129.00", currency: "USD", line_items: [{ title: "Mechanical Keyboard", quantity: 1 }] } },
+    { id: 5, time: "14:29:58", status: "Routed", slug: "sendgrid-mail", method: "POST", path: "/events", relay: "localhost:4000", ip: "167.89.118.50", evtId: "sg_7a21c", payload: [{ email: "user@example.com", event: "delivered", timestamp: 1718800198, "smtp-id": "<14c5d75ce93.dfd.64b469@ismtpd>" }] },
+    { id: 6, time: "14:28:33", status: "Routed", slug: "github-ci", method: "DELETE", path: "/branch", relay: "localhost:4000", ip: "140.82.115.94", evtId: "ev_4b7d10", payload: { ref: "feature/old-experiment", ref_type: "branch", sender: { login: "erick" } } },
+    { id: 7, time: "14:27:02", status: "Dropped", slug: "linear-sync", method: "POST", path: "/issue.update", relay: null, ip: "35.190.12.77", reason: "Agent offline — listener \u2018linear-sync\u2019 is not connected", evtId: "ln_22a9f", payload: { action: "update", type: "Issue", data: { id: "ISS-204", title: "Reconnect dropped webhooks", state: "In Progress" } } },
+    { id: 8, time: "14:25:41", status: "Received", slug: "stripe-prod", method: "PUT", path: "/customer.updated", relay: null, ip: "54.187.205.235", evtId: "evt_1Lp02", payload: { id: "evt_1Lp02", type: "customer.updated", data: { object: { id: "cus_Qk2Vd", email: "new@example.com", delinquent: false } } } },
+  ];
+
+  STATUS_STYLE = {
+    Routed:   { bg: "rgba(0,214,143,0.13)", color: "#34e0a8" },
+    Dropped:  { bg: "rgba(255,71,87,0.13)", color: "#ff6b78" },
+    Received: { bg: "rgba(59,130,246,0.15)", color: "#7aa9f7" },
+  };
+
+  onSearch = (e) => this.setState({ search: e.target.value });
+  onSlugFilter = (e) => this.setState({ slugFilter: e.target.value });
+  onStatusFilter = (e) => this.setState({ statusFilter: e.target.value });
+  onClear = () => this.setState({ search: "", slugFilter: "all", statusFilter: "all", expanded: {} });
+  toggle = (id) => this.setState((s) => ({ expanded: { ...s.expanded, [id]: !s.expanded[id] } }));
+
+  renderVals() {
+    const { search, slugFilter, statusFilter, expanded } = this.state;
+    const q = search.trim().toLowerCase();
+
+    const agents = this.agents.map((a) => ({
+      slug: a.slug,
+      online: a.online,
+      dotColor: a.online ? "#00d68f" : "#3a3a3a",
+      anim: a.online ? "pulse-dot 2.4s infinite" : "none",
+      nameColor: a.online ? "#d6d6d6" : "#6a6a6a",
+      statusText: a.online ? "connected " + a.ago : "offline",
+    }));
+    const onlineCount = this.agents.filter((a) => a.online).length;
+
+    let list = this.raw.filter((c) => {
+      if (slugFilter !== "all" && c.slug !== slugFilter) return false;
+      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (q) {
+        const hay = (c.path + " " + c.ip + " " + c.slug + " " + c.method + " " + JSON.stringify(c.payload)).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const callbacks = list.map((c) => {
+      const ss = this.STATUS_STYLE[c.status];
+      const isExp = !!expanded[c.id];
+      const jsonStr = JSON.stringify(c.payload, null, 2);
+      return {
+        id: c.id,
+        time: c.time,
+        status: c.status,
+        statusBg: ss.bg,
+        statusColor: ss.color,
+        slug: c.slug,
+        method: c.method,
+        path: c.path,
+        hasRelay: !!c.relay,
+        relayTarget: c.relay ? "http://" + c.relay + "/" : "",
+        sourceIp: c.ip,
+        isDropped: c.status === "Dropped",
+        droppedReason: c.reason || "",
+        cardBorder: c.status === "Dropped" ? "rgba(255,71,87,0.25)" : "#1f1f1f",
+        expanded: isExp,
+        caretRotate: isExp ? "rotate(90deg)" : "rotate(0deg)",
+        json: jsonStr,
+        bytes: new Blob([JSON.stringify(c.payload)]).size,
+        evtId: c.evtId,
+        onToggle: () => this.toggle(c.id),
+      };
+    });
+
+    const slugOptions = [{ value: "all", label: "All listeners" }].concat(
+      this.agents.map((a) => ({ value: a.slug, label: a.slug }))
+    );
+    const statusOptions = [
+      { value: "all", label: "All statuses" },
+      { value: "Routed", label: "Routed" },
+      { value: "Dropped", label: "Dropped" },
+      { value: "Received", label: "Received" },
+    ];
+
+    const total = this.raw.length;
+    const shown = callbacks.length;
+    const countLabel = shown === total ? total + " callbacks" : shown + " of " + total + " callbacks";
+
+    const filtered = q || slugFilter !== "all" || statusFilter !== "all";
+
+    return {
+      agents,
+      onlineCount,
+      callbacks,
+      search,
+      slugFilter,
+      statusFilter,
+      slugOptions,
+      statusOptions,
+      countLabel,
+      onSearch: this.onSearch,
+      onSlugFilter: this.onSlugFilter,
+      onStatusFilter: this.onStatusFilter,
+      onClear: this.onClear,
+      isEmpty: shown === 0,
+      emptyTitle: filtered ? "No callbacks match your filters" : "Waiting for callbacks\u2026",
+      emptySub: filtered ? "Try clearing the search or filters." : "Incoming webhooks will appear here in real time.",
+      conn: { label: "Connected", dot: "#00d68f", text: "#34e0a8", bg: "rgba(0,214,143,0.08)", border: "rgba(0,214,143,0.2)" },
+    };
+  }
+}
+</script>
+</body>
+</html>

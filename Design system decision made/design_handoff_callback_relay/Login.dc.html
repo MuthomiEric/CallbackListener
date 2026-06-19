@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #0a0a0a; }
+  ::selection { background: rgba(0,212,170,0.28); }
+  .cr-google:hover { background: #f5f5f5 !important; }
+  .cr-primary:hover { background: #00e6b8 !important; }
+  .cr-input:focus { border-color: #00d4aa !important; outline: none; box-shadow: 0 0 0 3px rgba(0,212,170,0.12); }
+  .cr-link:hover { color: #00d4aa !important; }
+  .cr-toggle:hover { color: #c6c6c6 !important; }
+</style>
+</helmet>
+
+<div style="font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: radial-gradient(900px 600px at 50% -10%, #131313 0%, #0a0a0a 60%); color: #e6e6e6; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; -webkit-font-smoothing: antialiased;">
+
+  <!-- brand -->
+  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 30px;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="12" cy="12" r="1.6" fill="#00d4aa"></circle></svg>
+    <span style="font-size: 15px; font-weight: 650; letter-spacing: -0.01em;">Callback Relay</span>
+  </div>
+
+  <!-- card -->
+  <div style="width: 100%; max-width: 384px; background: #111; border: 1px solid #232323; border-radius: 12px; padding: 30px 30px 26px;">
+    <h1 style="margin: 0 0 5px; font-size: 19px; font-weight: 650; letter-spacing: -0.01em;">Sign in</h1>
+    <p style="margin: 0 0 22px; font-size: 13px; color: #8a8a8a;">Welcome back. Connect your listeners and watch callbacks flow.</p>
+
+    <button class="cr-google" style="width: 100%; height: 42px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #1a1a1a; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 120ms;">
+      <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"></path><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"></path><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"></path><path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 4.75 12 4.75z"></path></svg>
+      Continue with Google
+    </button>
+
+    <div style="display: flex; align-items: center; gap: 12px; margin: 18px 0;">
+      <div style="flex: 1; height: 1px; background: #232323;"></div>
+      <button class="cr-toggle" onClick="{{ onToggle }}" style="background: none; border: none; font-size: 12px; color: #8a8a8a; font-family: inherit; cursor: pointer; transition: color 120ms; white-space: nowrap;">{{ toggleLabel }}</button>
+      <div style="flex: 1; height: 1px; background: #232323;"></div>
+    </div>
+
+    <sc-if value="{{ showEmail }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <label style="display: block; font-size: 12px; color: #9a9a9a; margin-bottom: 6px;">Email</label>
+          <input class="cr-input" type="email" placeholder="you@company.dev" style="width: 100%; height: 40px; padding: 0 12px; background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; color: #e6e6e6; font-size: 14px; font-family: 'JetBrains Mono', monospace; transition: all 120ms;">
+        </div>
+        <div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px;">
+            <label style="font-size: 12px; color: #9a9a9a;">Password</label>
+            <a href="#" class="cr-link" style="font-size: 12px; color: #6a6a6a; text-decoration: none; transition: color 120ms;">Forgot?</a>
+          </div>
+          <input class="cr-input" type="password" placeholder="••••••••••••" style="width: 100%; height: 40px; padding: 0 12px; background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; color: #e6e6e6; font-size: 14px; font-family: 'JetBrains Mono', monospace; transition: all 120ms;">
+        </div>
+        <button class="cr-primary" style="width: 100%; height: 42px; margin-top: 2px; background: #00d4aa; color: #062d24; border: none; border-radius: 8px; font-size: 14px; font-weight: 650; font-family: inherit; cursor: pointer; transition: background 120ms;">Sign in</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <p style="margin: 22px 0 0; font-size: 13px; color: #6a6a6a;">New here? <a href="Register.dc.html" class="cr-link" style="color: #34e0a8; text-decoration: none; font-weight: 550; transition: color 120ms;">Create an account</a></p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { showEmail: false };
+  onToggle = () => this.setState((s) => ({ showEmail: !s.showEmail }));
+  renderVals() {
+    return {
+      showEmail: this.state.showEmail,
+      toggleLabel: this.state.showEmail ? "hide email sign-in" : "or use email",
+    };
+  }
+}
+</script>
+</body>
+</html>
