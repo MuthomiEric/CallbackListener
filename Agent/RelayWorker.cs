@@ -32,6 +32,22 @@ public sealed class RelayWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (string.IsNullOrWhiteSpace(_options.ServerUrl))
+        {
+            _logger.LogCritical("Agent:ServerUrl is not configured. Run with --help to see usage.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_options.ApiKey) || _options.ApiKey == "REPLACE_WITH_YOUR_API_KEY")
+        {
+            _logger.LogCritical("Agent:ApiKey is not configured. Run 'CallbackAgent install --help' to see usage.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_options.Slug))
+        {
+            _logger.LogCritical("Agent:Slug is not configured. Run 'CallbackAgent install --help' to see usage.");
+            return;
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             var connection = BuildConnection();
