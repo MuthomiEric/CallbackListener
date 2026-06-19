@@ -67,11 +67,13 @@ public sealed class CallbackService : ICallbackService
 
         entry = await RouteAsync(entry, mode, ct);
 
-        _store.Add(entry);
-
-        // Push only to the dashboard connections belonging to the app owner.
-        if (!string.IsNullOrEmpty(userId))
-            await _dashboard.Clients.Group(userId).SendAsync("CallbackReceived", entry, ct);
+        // Local-only mode: agent receives it, web feed does not.
+        if (mode != DeliveryMode.Local)
+        {
+            _store.Add(entry);
+            if (!string.IsNullOrEmpty(userId))
+                await _dashboard.Clients.Group(userId).SendAsync("CallbackReceived", entry, ct);
+        }
 
         _logger.LogInformation(
             "Callback {Id} [{Status}] — {Method} /collections/callback?slug={Slug} from {Ip}",

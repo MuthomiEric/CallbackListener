@@ -387,7 +387,8 @@ function relTime(isoStr) {
 document.getElementById("search")        .addEventListener("input",  renderCallbacks);
 document.getElementById("filter-slug")   .addEventListener("change", renderCallbacks);
 document.getElementById("filter-status") .addEventListener("change", renderCallbacks);
-document.getElementById("clear-btn")     .addEventListener("click",  () => {
+document.getElementById("clear-btn")     .addEventListener("click",  async () => {
+    await fetch("/api/callbacks", { method: "DELETE" });
     allCallbacks = [];
     expandedIds.clear();
     renderCallbacks();

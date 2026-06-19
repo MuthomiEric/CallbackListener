@@ -17,6 +17,14 @@ public static class ApiEndpoints
             return Results.Ok(store.GetRecent(Math.Clamp(count, 1, 200), user.Id));
         });
 
+        api.MapDelete("/callbacks", async (HttpContext ctx, ICallbackStore store, UserManager<AppUser> userMgr) =>
+        {
+            var user = await userMgr.GetUserAsync(ctx.User);
+            if (user is null) return Results.Unauthorized();
+            store.Clear(user.Id);
+            return Results.NoContent();
+        });
+
         api.MapGet("/agents", (IAgentRegistry registry) =>
             Results.Ok(registry.GetAll()));
 

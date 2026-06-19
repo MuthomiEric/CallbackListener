@@ -35,4 +35,10 @@ public sealed class CallbackStore : ICallbackStore
             return list.Take(Math.Min(count, MaxPerUser)).ToList();
         }
     }
+
+    public void Clear(string userId)
+    {
+        lock (_lock)
+            _byUser.Remove(userId);
+    }
 }
