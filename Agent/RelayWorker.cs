@@ -71,7 +71,7 @@ public sealed class RelayWorker : BackgroundService
 
     private HubConnection BuildConnection()
     {
-        var hubUrl = $"{_options.ServerUrl.TrimEnd('/')}/hubs/agents?apiKey={Uri.EscapeDataString(_options.ApiKey)}";
+        var hubUrl = $"{_options.ServerUrl.TrimEnd('/')}/hubs/agents?apiKey={Uri.EscapeDataString(_options.ApiKey)}&slug={Uri.EscapeDataString(_options.Slug)}";
 
         return new HubConnectionBuilder()
             .WithUrl(hubUrl)

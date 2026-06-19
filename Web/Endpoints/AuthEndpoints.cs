@@ -1,6 +1,8 @@
+using CallbackListener.Configuration;
 using CallbackListener.Domain;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace CallbackListener.Web.Endpoints;
 
@@ -10,17 +12,19 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/auth");
 
-        group.MapGet("/me", async (HttpContext ctx, UserManager<AppUser> userMgr) =>
+        group.MapGet("/me", async (HttpContext ctx, UserManager<AppUser> userMgr, IOptions<AppOptions> opts) =>
         {
             if (ctx.User.Identity?.IsAuthenticated != true) return Results.Unauthorized();
             var user = await userMgr.GetUserAsync(ctx.User);
             if (user is null) return Results.Unauthorized();
+            var adminEmail = opts.Value.AdminEmail;
             return Results.Ok(new
             {
                 id          = user.Id,
                 email       = user.Email,
                 displayName = user.DisplayName,
-                initials    = Initials(user.DisplayName.Length > 0 ? user.DisplayName : user.Email ?? "")
+                initials    = Initials(user.DisplayName.Length > 0 ? user.DisplayName : user.Email ?? ""),
+                isAdmin     = !string.IsNullOrEmpty(adminEmail) && user.Email == adminEmail,
             });
         });
 

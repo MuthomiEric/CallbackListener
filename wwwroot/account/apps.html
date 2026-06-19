@@ -214,7 +214,56 @@
         }
 
         .icon-btn:hover { background: #1f1f1f; color: #e6e6e6; border-color: #333; }
-        .icon-btn.del:hover { background: rgba(255,71,87,0.12); color: #ff6b78; border-color: rgba(255,71,87,0.35); }
+        .icon-btn.del:hover    { background: rgba(255,71,87,0.12); color: #ff6b78; border-color: rgba(255,71,87,0.35); }
+        .icon-btn.copy-url-btn.copied { color: #34e0a8; border-color: rgba(0,212,170,0.35); }
+
+        /* ── URL bar ── */
+        .url-bar {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 0 18px 12px;
+            background: #111;
+            border: 1px solid #1c1c1c;
+            border-radius: 7px;
+            padding: 7px 10px;
+        }
+
+        .url-bar-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: #5a5a5a;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .url-bar-val {
+            flex: 1;
+            font-size: 12px;
+            color: #9a9a9a;
+            font-family: "Consolas", monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .url-bar-copy {
+            font-size: 11px;
+            color: #6a6a6a;
+            background: none;
+            border: none;
+            font-family: inherit;
+            cursor: pointer;
+            padding: 3px 7px;
+            border-radius: 5px;
+            transition: background 120ms, color 120ms;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .url-bar-copy:hover  { background: #1a1a1a; color: #c6c6c6; }
+        .url-bar-copy.copied { color: #34e0a8; }
 
         /* ── Modal ── */
         .overlay {
@@ -340,6 +389,7 @@
         <a href="/" class="nav-link">Feed</a>
         <a href="apps.html" class="nav-link active">Apps</a>
         <a href="keys.html" class="nav-link">API Keys</a>
+        <a href="admin.html" class="nav-link" id="admin-link" hidden>Admin</a>
     </nav>
     <div class="header-spacer"></div>
     <div class="avatar-wrap" id="avatar-wrap">
@@ -380,7 +430,7 @@
 <div class="overlay hidden" id="overlay">
     <div class="modal" id="modal">
         <div class="modal-head">
-            <h2>Add app</h2>
+            <h2 id="modal-title">Add app</h2>
             <button class="icon-btn" id="modal-close-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             </button>
@@ -390,10 +440,6 @@
                 <label>Label</label>
                 <input type="text" id="f-label" placeholder="Stripe Production">
             </div>
-            <div>
-                <label>Slug <span class="label-hint">· auto-generated, editable</span></label>
-                <input type="text" id="f-slug" placeholder="stripe-production" class="input-mono">
-            </div>
             <div class="row-3">
                 <div class="w110">
                     <label>Scheme</label>
@@ -402,16 +448,20 @@
                         <option value="https">https</option>
                     </select>
                 </div>
-                <div class="flex1">
+                <div class="w110">
                     <label>Port</label>
                     <input type="text" id="f-port" placeholder="4000" class="input-mono-neutral" inputmode="numeric">
+                </div>
+                <div class="flex1">
+                    <label>Base path</label>
+                    <input type="text" id="f-basepath" placeholder="/webhooks" class="input-mono-neutral">
                 </div>
             </div>
             <div>
                 <label>Delivery mode</label>
                 <select id="f-mode">
-                    <option value="2">Both — dashboard + forward to agent</option>
                     <option value="0">Web only — dashboard display only</option>
+                    <option value="2">Both — dashboard + forward to agent</option>
                     <option value="1">Local only — forward to agent only</option>
                 </select>
             </div>
@@ -433,18 +483,44 @@
 "use strict";
 
 let apps      = [];
-let slugEdited = false;
+let editingId = null;   // null = create mode, Guid = edit mode
 
-function slugify(s) {
-    return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const COPY_SVG  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M5 15 L4 15 A1 1 0 0 1 3 14 L3 4 A1 1 0 0 1 4 3 L14 3 A1 1 0 0 1 15 4 L15 5" stroke="currentColor" stroke-width="1.7"/></svg>`;
+const CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 7" stroke="#34e0a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const EDIT_SVG  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 5 L19 10 M4 20 L4.5 16 L15 5.5 A1.5 1.5 0 0 1 17 5.5 L18.5 7 A1.5 1.5 0 0 1 18.5 9 L8 19.5 L4 20Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+const DEL_SVG   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 7 L19 7 M10 4 L14 4 M6 7 L7 20 L17 20 L18 7 M10 11 L10 16 M14 11 L14 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+function generateId(length = 6) {
+    return Array.from({ length }, () => ID_CHARS[Math.floor(Math.random() * ID_CHARS.length)]).join("");
 }
 
 function relayOf(a) {
-    return `${a.scheme}://localhost:${a.port}`;
+    const base = (a.basePath || "/").replace(/\/$/, "");
+    return `${a.scheme}://localhost:${a.port}${base || "/"}`;
+}
+
+function webhookUrl(slug) {
+    return `${location.origin}/?slug=${encodeURIComponent(slug)}`;
 }
 
 function esc(s) {
     return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function copyText(text, btn, ghostBtn) {
+    await navigator.clipboard.writeText(text);
+    if (btn) {
+        btn.innerHTML = CHECK_SVG;
+        btn.classList.add("copied");
+        setTimeout(() => { btn.innerHTML = COPY_SVG; btn.classList.remove("copied"); }, 1800);
+    }
+    if (ghostBtn) {
+        ghostBtn.textContent = "Copied";
+        ghostBtn.classList.add("copied");
+        setTimeout(() => { ghostBtn.textContent = "Copy"; ghostBtn.classList.remove("copied"); }, 1800);
+    }
 }
 
 // ── Auth + load ───────────────────────────────────────────────────────────────
@@ -454,6 +530,7 @@ function esc(s) {
     const me = await meRes.json();
     document.getElementById("avatar-el").textContent = me.initials;
     document.getElementById("user-menu-email").textContent = me.email;
+    if (me.isAdmin) document.getElementById("admin-link").hidden = false;
     await loadApps();
 })();
 
@@ -470,10 +547,7 @@ document.getElementById("signout-btn").addEventListener("click", async () => {
 
 async function loadApps() {
     const res = await fetch("/api/apps");
-    if (!res.ok) {
-        console.error("Failed to load apps:", res.status, res.statusText);
-        return;
-    }
+    if (!res.ok) return;
     apps = await res.json();
     render();
 }
@@ -488,7 +562,8 @@ function render() {
         `${apps.length} registered · ${active} active`;
 
     apps.forEach(a => {
-        const relay = relayOf(a);
+        const relay  = relayOf(a);
+        const webUrl = webhookUrl(a.slug);
 
         const statusBg    = a.isActive ? "rgba(0,214,143,0.12)" : "#1a1a1a";
         const statusColor = a.isActive ? "#34e0a8" : "#7a7a7a";
@@ -504,28 +579,41 @@ function render() {
                 <span class="cell-relay">${esc(relay)}</span>
                 <select class="mode-select">
                     <option value="0" ${a.mode === 0 ? "selected" : ""}>Web only</option>
-                    <option value="1" ${a.mode === 1 ? "selected" : ""}>Local only</option>
                     <option value="2" ${a.mode === 2 ? "selected" : ""}>Both</option>
+                    <option value="1" ${a.mode === 1 ? "selected" : ""}>Local only</option>
                 </select>
                 <span class="badge-status" style="background:${statusBg};color:${statusColor};">
                     <span class="status-dot" style="background:${dotColor};"></span>
                     ${statusLabel}
                 </span>
                 <div class="actions">
-                    <button class="icon-btn del" title="Delete">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 7 L19 7 M10 4 L14 4 M6 7 L7 20 L17 20 L18 7 M10 11 L10 16 M14 11 L14 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </button>
+                    <button class="icon-btn copy-url-btn" title="Copy webhook URL">${COPY_SVG}</button>
+                    <button class="icon-btn edit-btn" title="Edit">${EDIT_SVG}</button>
+                    <button class="icon-btn del" title="Delete">${DEL_SVG}</button>
                 </div>
             </div>
-            `;
+            <div class="url-bar">
+                <span class="url-bar-label">URL</span>
+                <span class="url-bar-val">${esc(webUrl)}</span>
+                <button class="url-bar-copy">Copy</button>
+            </div>`;
 
+        const copyBtn  = row.querySelector(".copy-url-btn");
+        const ghostBtn = row.querySelector(".url-bar-copy");
+        copyBtn.addEventListener("click",  () => copyText(webUrl, copyBtn, ghostBtn));
+        ghostBtn.addEventListener("click", () => copyText(webUrl, copyBtn, ghostBtn));
+
+        row.querySelector(".edit-btn").addEventListener("click", () => openModal(a));
         row.querySelector(".del").addEventListener("click", () => deleteApp(a.id));
         row.querySelector(".mode-select").addEventListener("change", async e => {
+            const mode = parseInt(e.target.value);
             await fetch(`/api/apps/${a.id}/mode`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mode: parseInt(e.target.value) }),
+                body: JSON.stringify({ mode }),
             });
+            const app = apps.find(x => x.id === a.id);
+            if (app) app.mode = mode;
         });
 
         body.appendChild(row);
@@ -541,17 +629,25 @@ async function deleteApp(id) {
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
-const overlay  = document.getElementById("overlay");
-const fLabel   = document.getElementById("f-label");
-const fSlug    = document.getElementById("f-slug");
-const fScheme  = document.getElementById("f-scheme");
-const fPort    = document.getElementById("f-port");
-const fMode    = document.getElementById("f-mode");
+const overlay   = document.getElementById("overlay");
+const fLabel    = document.getElementById("f-label");
+const fScheme   = document.getElementById("f-scheme");
+const fPort     = document.getElementById("f-port");
+const fBasePath = document.getElementById("f-basepath");
+const fMode     = document.getElementById("f-mode");
 
-function openModal() {
-    slugEdited = false;
-    fLabel.value = ""; fSlug.value = ""; fScheme.value = "http";
-    fPort.value  = ""; fMode.value = "2";
+function openModal(app = null) {
+    editingId = app ? app.id : null;
+
+    document.getElementById("modal-title").textContent = app ? "Edit app" : "Add app";
+    document.getElementById("save-btn").textContent    = app ? "Save changes" : "Create app";
+
+    fLabel.value    = app ? app.label          : "";
+    fScheme.value   = app ? app.scheme         : "http";
+    fPort.value     = app ? String(app.port)   : "";
+    fBasePath.value = app ? (app.basePath || "") : "";
+    fMode.value     = app ? String(app.mode)   : "0";
+
     updatePreview();
     overlay.classList.remove("hidden");
     fLabel.focus();
@@ -561,53 +657,77 @@ function closeModal() { overlay.classList.add("hidden"); }
 
 function updatePreview() {
     const port = fPort.value.trim() || "4000";
-    document.getElementById("preview-relay").textContent = `${fScheme.value}://localhost:${port}`;
+    const base = fBasePath.value.trim() || "/";
+    document.getElementById("preview-relay").textContent =
+        `${fScheme.value}://localhost:${port}${base === "/" ? "/" : base}`;
 }
 
-fLabel.addEventListener("input", () => {
-    if (!slugEdited) fSlug.value = slugify(fLabel.value);
-    updatePreview();
-});
-fSlug.addEventListener("input", () => { slugEdited = true; updatePreview(); });
-fScheme.addEventListener("change", updatePreview);
-fPort.addEventListener("input", () => { fPort.value = fPort.value.replace(/[^0-9]/g, ""); updatePreview(); });
+fLabel.addEventListener("input",    updatePreview);
+fScheme.addEventListener("change",  updatePreview);
+fPort.addEventListener("input",    () => { fPort.value = fPort.value.replace(/[^0-9]/g, ""); updatePreview(); });
+fBasePath.addEventListener("input", updatePreview);
 
-document.getElementById("add-btn").addEventListener("click", openModal);
+document.getElementById("add-btn").addEventListener("click", () => openModal());
 document.getElementById("modal-close-btn").addEventListener("click", closeModal);
 document.getElementById("cancel-btn").addEventListener("click", closeModal);
 overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(); });
 
 document.getElementById("save-btn").addEventListener("click", async () => {
-    const slug = fSlug.value.trim();
-    if (!slug) { fSlug.focus(); return; }
+    const label = fLabel.value.trim();
+    if (!label) { fLabel.focus(); return; }
 
     const saveBtn = document.getElementById("save-btn");
     saveBtn.disabled = true;
-    saveBtn.textContent = "Creating…";
+    const origText = saveBtn.textContent;
+    saveBtn.textContent = editingId ? "Saving…" : "Creating…";
 
-    const res = await fetch("/api/apps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            slug,
-            label:  fLabel.value.trim() || slug,
-            scheme: fScheme.value,
-            port:   parseInt(fPort.value.trim()) || 4000,
-            mode:   parseInt(fMode.value),
-        }),
-    });
+    let res;
+    if (editingId) {
+        res = await fetch(`/api/apps/${editingId}`, {
+            method:  "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                label,
+                scheme:   fScheme.value,
+                port:     parseInt(fPort.value.trim()) || 4000,
+                basePath: fBasePath.value.trim() || "/",
+            }),
+        });
+    } else {
+        // Generate a random 6-char ID; retry a few times if there's a collision
+        for (let attempt = 0; attempt < 5; attempt++) {
+            res = await fetch("/api/apps", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    slug:     generateId(),
+                    label,
+                    scheme:   fScheme.value,
+                    port:     parseInt(fPort.value.trim()) || 4000,
+                    basePath: fBasePath.value.trim() || "/",
+                    mode:     parseInt(fMode.value),
+                }),
+            });
+            if (res.status !== 409) break;
+        }
+    }
 
     saveBtn.disabled = false;
-    saveBtn.textContent = "Create app";
+    saveBtn.textContent = origText;
 
     if (res.ok || res.status === 201) {
-        const created = await res.json();
-        apps.unshift(created);
+        const data = await res.json();
+        if (editingId) {
+            const idx = apps.findIndex(a => a.id === editingId);
+            if (idx !== -1) apps[idx] = { ...apps[idx], ...data };
+        } else {
+            apps.unshift(data);
+        }
         closeModal();
         render();
     } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.error ?? "Failed to create app.");
+        alert(data.error ?? "Failed to save.");
     }
 });
 </script>

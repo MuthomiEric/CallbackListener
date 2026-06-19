@@ -145,6 +145,7 @@ app.MapListenerEndpoints();
 app.MapKeyEndpoints();
 app.MapCallbackEndpoints();
 app.MapApiEndpoints();
+app.MapAdminEndpoints();
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 app.Lifetime.ApplicationStarted.Register(() =>

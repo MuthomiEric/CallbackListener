@@ -365,6 +365,7 @@
         <a href="/" class="nav-link">Feed</a>
         <a href="apps.html" class="nav-link">Apps</a>
         <a href="keys.html" class="nav-link active">API Keys</a>
+        <a href="admin.html" class="nav-link" id="admin-link" hidden>Admin</a>
     </nav>
     <div class="header-spacer"></div>
     <div class="avatar-wrap" id="avatar-wrap">
@@ -417,13 +418,7 @@
                     <label>Key label</label>
                     <input type="text" id="key-label" placeholder="Macbook Pro — local dev">
                 </div>
-                <div>
-                    <label>Listener</label>
-                    <select id="key-listener" style="width:100%;height:40px;padding:0 12px;background:#141414;border:1px solid #2a2a2a;border-radius:8px;color:#e6e6e6;font-size:13px;font-family:inherit;outline:none;">
-                        <option value="">— select a listener —</option>
-                    </select>
-                </div>
-                <p class="helper" style="margin:0;">This key grants the agent access to forward callbacks for the selected listener.</p>
+                <p class="helper" style="margin:0;">Give it a name you'll recognize — usually the machine or environment the agent runs on.</p>
             </div>
             <div class="modal-foot">
                 <button class="btn-ghost" id="cancel-btn">Cancel</button>
@@ -470,11 +465,9 @@
 <script>
 "use strict";
 
-let keys        = [];
-let listeners   = [];
-let currentKey  = "";
-let keyCopied   = false;
-let copyTimer   = null;
+let keys       = [];
+let currentKey = "";
+let copyTimer  = null;
 
 function esc(s) {
     return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -500,8 +493,9 @@ function relTime(iso) {
     const me = await meRes.json();
     document.getElementById("avatar-el").textContent = me.initials;
     document.getElementById("user-menu-email").textContent = me.email;
+    if (me.isAdmin) document.getElementById("admin-link").hidden = false;
 
-    await Promise.all([loadKeys(), loadListeners()]);
+    await loadKeys();
 })();
 
 document.getElementById("avatar-el").addEventListener("click", e => {
@@ -522,24 +516,6 @@ async function loadKeys() {
     render();
 }
 
-async function loadListeners() {
-    const res = await fetch("/api/apps");
-    if (!res.ok) return;
-    listeners = await res.json();
-    populateListenerSelect();
-}
-
-function populateListenerSelect() {
-    const sel = document.getElementById("key-listener");
-    sel.innerHTML = '<option value="">— select a listener —</option>';
-    listeners.forEach(l => {
-        const opt = document.createElement("option");
-        opt.value = l.id;
-        opt.textContent = `${l.slug} (${l.label})`;
-        sel.appendChild(opt);
-    });
-}
-
 // ── Render table ──────────────────────────────────────────────────────────────
 function render() {
     const body = document.getElementById("table-body");
@@ -552,9 +528,7 @@ function render() {
         const row = document.createElement("div");
         row.className = "key-row";
         row.innerHTML = `
-            <span class="cell-label">${esc(k.label)}<br>
-                <span style="font-size:11px;color:#5a5a5a;font-family:'Consolas',monospace">${esc(k.listenerSlug)}</span>
-            </span>
+            <span class="cell-label">${esc(k.label)}</span>
             <span class="cell-key">${esc(k.masked)}</span>
             <span class="cell-date">${fmtDate(k.createdAt)}</span>
             <span class="cell-used" style="color:${k.lastUsedAt ? '#8a8a8a' : '#5a5a5a'}">${relTime(k.lastUsedAt)}</span>
@@ -581,9 +555,7 @@ const keyLabelEl  = document.getElementById("key-label");
 
 function openModal() {
     keyLabelEl.value = "";
-    document.getElementById("key-listener").value = "";
     document.getElementById("copy-key-label").textContent = "Copy key";
-    keyCopied = false;
     setStage("label");
     overlay.classList.remove("hidden");
     keyLabelEl.focus();
@@ -602,10 +574,8 @@ document.getElementById("cancel-btn").addEventListener("click", closeModal);
 overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(); });
 
 document.getElementById("generate-key-btn").addEventListener("click", async () => {
-    const label      = keyLabelEl.value.trim();
-    const listenerId = document.getElementById("key-listener").value;
-    if (!label)      { keyLabelEl.focus(); return; }
-    if (!listenerId) { document.getElementById("key-listener").focus(); return; }
+    const label = keyLabelEl.value.trim();
+    if (!label) { keyLabelEl.focus(); return; }
 
     const genBtn = document.getElementById("generate-key-btn");
     genBtn.disabled = true;
@@ -614,7 +584,7 @@ document.getElementById("generate-key-btn").addEventListener("click", async () =
     const res = await fetch("/api/keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label, listenerId }),
+        body: JSON.stringify({ label }),
     });
 
     genBtn.disabled = false;
@@ -633,14 +603,12 @@ document.getElementById("generate-key-btn").addEventListener("click", async () =
     document.getElementById("key-val").textContent      = currentKey;
     setStage("reveal");
 
-    // Prepend to local list
     keys.unshift({
-        id:           data.id,
-        label:        data.label,
-        masked:       data.masked,
-        listenerSlug: data.listenerSlug,
-        createdAt:    data.createdAt,
-        lastUsedAt:   null,
+        id:        data.id,
+        label:     data.label,
+        masked:    data.masked,
+        createdAt: data.createdAt,
+        lastUsedAt: null,
     });
 });
 

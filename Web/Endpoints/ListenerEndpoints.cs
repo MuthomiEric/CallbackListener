@@ -29,6 +29,7 @@ public static class ListenerEndpoints
                 label     = l.Label,
                 scheme    = l.Scheme,
                 port      = l.Port,
+                basePath  = l.BasePath,
                 mode      = (int)l.Mode,
                 isActive  = registry.GetByClientId(l.Slug)?.IsOnline ?? false,
                 createdAt = l.CreatedAt,
@@ -73,6 +74,36 @@ public static class ListenerEndpoints
             });
         });
 
+        group.MapPut("/{id:guid}", async (Guid id, UpdateListenerRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr) =>
+        {
+            var user = await userMgr.GetUserAsync(ctx.User);
+            if (user is null) return Results.Unauthorized();
+
+            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == id && l.UserId == user.Id);
+            if (listener is null) return Results.NotFound();
+
+            if (!string.IsNullOrWhiteSpace(req.Label))
+                listener.Label = req.Label.Trim();
+            if (!string.IsNullOrWhiteSpace(req.Scheme))
+                listener.Scheme = req.Scheme == "https" ? "https" : "http";
+            if (req.Port is > 0)
+                listener.Port = req.Port.Value;
+            if (req.BasePath is not null)
+                listener.BasePath = string.IsNullOrWhiteSpace(req.BasePath) ? "/" : req.BasePath.Trim();
+
+            await db.SaveChangesAsync();
+            return Results.Ok(new
+            {
+                id       = listener.Id,
+                slug     = listener.Slug,
+                label    = listener.Label,
+                scheme   = listener.Scheme,
+                port     = listener.Port,
+                basePath = listener.BasePath,
+                mode     = (int)listener.Mode,
+            });
+        });
+
         group.MapPatch("/{id:guid}/mode", async (Guid id, ModeRequest req, HttpContext ctx, AppDbContext db, UserManager<AppUser> userMgr) =>
         {
             var user = await userMgr.GetUserAsync(ctx.User);
@@ -105,4 +136,5 @@ public static class ListenerEndpoints
 }
 
 record CreateListenerRequest(string Slug, string Label, string Scheme, int Port, string? BasePath, int Mode = 2);
+record UpdateListenerRequest(string? Label, string? Scheme, int? Port, string? BasePath);
 record ModeRequest(int Mode);

@@ -9,6 +9,10 @@
     if (avatarEl) avatarEl.textContent = me.initials;
     const emailEl = document.getElementById("user-menu-email");
     if (emailEl) emailEl.textContent = me.email;
+    if (me.isAdmin) {
+        const adminLink = document.getElementById("admin-link");
+        if (adminLink) adminLink.hidden = false;
+    }
     await loadApps();
 })();
 
@@ -199,7 +203,16 @@ function buildCard(cb, isNew) {
         </div>` : ""}
         <div class="card-body${isExp ? "" : " hidden"}">
             ${metaRow}
-            <pre class="json-pre">${formatBody(cb)}</pre>
+            <div class="pre-wrap">
+                <button class="copy-btn" title="Copy body">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.9"/>
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.9"/>
+                    </svg>
+                    Copy
+                </button>
+                <pre class="json-pre">${formatBody(cb)}</pre>
+            </div>
         </div>`;
 
     const header = card.querySelector(".card-header");
@@ -210,6 +223,19 @@ function buildCard(cb, isNew) {
         header.classList.toggle("is-open", open);
         if (open) expandedIds.add(cb.id);
         else       expandedIds.delete(cb.id);
+    });
+
+    card.querySelector(".copy-btn").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const btn  = e.currentTarget;
+        const text = copyText(cb);
+        await navigator.clipboard.writeText(text);
+        btn.classList.add("copied");
+        btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied!`;
+        setTimeout(() => {
+            btn.classList.remove("copied");
+            btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.9"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.9"/></svg> Copy`;
+        }, 2000);
     });
 
     return card;
@@ -254,8 +280,27 @@ function renderSidebar() {
                 <span class="agent-slug" title="${esc(app.slug)}">${esc(app.slug)}</span>
                 <span class="agent-status">${esc(app.label)}</span>
             </div>
-            ${unread > 0 ? `<span class="unread-badge">${unread > 99 ? "99+" : unread}</span>` : ""}`;
+            ${unread > 0 ? `<span class="unread-badge">${unread > 99 ? "99+" : unread}</span>` : ""}
+            <button class="agent-copy-btn" title="Copy slug">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.9"/>
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.9"/>
+                </svg>
+            </button>`;
         el.addEventListener("click", () => selectApp(app.slug));
+
+        const copyBtn = el.querySelector(".agent-copy-btn");
+        copyBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await navigator.clipboard.writeText(app.slug);
+            copyBtn.classList.add("copied");
+            copyBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            setTimeout(() => {
+                copyBtn.classList.remove("copied");
+                copyBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.9"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.9"/></svg>`;
+            }, 2000);
+        });
+
         container.appendChild(el);
     });
 }
@@ -314,6 +359,14 @@ function formatBody(cb) {
         try { return esc(JSON.stringify(JSON.parse(cb.rawBody), null, 2)); } catch { /* fall through */ }
     }
     return esc(cb.rawBody);
+}
+
+function copyText(cb) {
+    if (!cb.rawBody) return "";
+    if (cb.isJsonBody) {
+        try { return JSON.stringify(JSON.parse(cb.rawBody), null, 2); } catch { /* fall through */ }
+    }
+    return cb.rawBody;
 }
 
 function esc(str) {

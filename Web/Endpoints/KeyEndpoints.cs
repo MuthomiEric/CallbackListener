@@ -20,18 +20,14 @@ public static class KeyEndpoints
 
             var keys = await db.ApiKeys
                 .Where(k => k.UserId == user.Id)
-                .Include(k => k.Listener)
                 .OrderByDescending(k => k.CreatedAt)
                 .Select(k => new
                 {
-                    id            = k.Id,
-                    label         = k.Label,
-                    masked        = "cr_live_••••••••" + k.KeySuffix,
-                    listenerSlug  = k.Listener.Slug,
-                    listenerLabel = k.Listener.Label,
-                    listenerId    = k.ListenerId,
-                    createdAt     = k.CreatedAt,
-                    lastUsedAt    = k.LastUsedAt,
+                    id         = k.Id,
+                    label      = k.Label,
+                    masked     = "cr_live_••••••••" + k.KeySuffix,
+                    createdAt  = k.CreatedAt,
+                    lastUsedAt = k.LastUsedAt,
                 })
                 .ToListAsync();
 
@@ -43,17 +39,16 @@ public static class KeyEndpoints
             var user = await userMgr.GetUserAsync(ctx.User);
             if (user is null) return Results.Unauthorized();
 
-            var listener = await db.Listeners.FirstOrDefaultAsync(l => l.Id == req.ListenerId && l.UserId == user.Id);
-            if (listener is null) return Results.BadRequest(new { error = "Listener not found" });
+            if (string.IsNullOrWhiteSpace(req.Label))
+                return Results.BadRequest(new { error = "Label is required" });
 
             var rawKey = "cr_live_" + GenerateHex(32);
             var key = new ApiKey
             {
-                UserId     = user.Id,
-                ListenerId = listener.Id,
-                Label      = req.Label.Trim(),
-                KeyHash    = KeyHasher.Hash(rawKey),
-                KeySuffix  = rawKey[^4..],
+                UserId    = user.Id,
+                Label     = req.Label.Trim(),
+                KeyHash   = KeyHasher.Hash(rawKey),
+                KeySuffix = rawKey[^4..],
             };
 
             db.ApiKeys.Add(key);
@@ -61,13 +56,11 @@ public static class KeyEndpoints
 
             return Results.Ok(new
             {
-                id            = key.Id,
-                label         = key.Label,
-                key           = rawKey,
-                masked        = "cr_live_••••••••" + key.KeySuffix,
-                listenerSlug  = listener.Slug,
-                listenerLabel = listener.Label,
-                createdAt     = key.CreatedAt,
+                id        = key.Id,
+                label     = key.Label,
+                key       = rawKey,
+                masked    = "cr_live_••••••••" + key.KeySuffix,
+                createdAt = key.CreatedAt,
             });
         });
 
@@ -92,4 +85,4 @@ public static class KeyEndpoints
     }
 }
 
-record CreateKeyRequest(string Label, Guid ListenerId);
+record CreateKeyRequest(string Label);

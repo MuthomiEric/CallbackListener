@@ -254,7 +254,6 @@
         .agent-status { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
         .unread-badge {
-            margin-left: auto;
             min-width: 18px;
             height: 18px;
             padding: 0 5px;
@@ -268,6 +267,27 @@
             justify-content: center;
             flex-shrink: 0;
         }
+
+        .agent-copy-btn {
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background: none;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            color: var(--text-dim);
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-left: auto;
+            transition: opacity 120ms, color 120ms, background 120ms, border-color 120ms;
+        }
+
+        .agent-item:hover .agent-copy-btn { opacity: 1; }
+        .agent-copy-btn:hover { color: var(--text-muted); background: #222; border-color: var(--border); }
+        .agent-copy-btn.copied { color: var(--teal); border-color: rgba(0,212,170,0.35); opacity: 1; }
 
         /* ── Main area ────────────────────────────────────────────── */
         .feed-area { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
@@ -447,6 +467,33 @@
             white-space: pre;
         }
 
+        /* ── Copy button ───────────────────────────────────────────── */
+        .pre-wrap { position: relative; }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            height: 24px;
+            padding: 0 9px;
+            background: #1c1c1c;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: color 120ms, border-color 120ms, background 120ms;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .copy-btn:hover  { color: var(--text); border-color: #444; background: #242424; }
+        .copy-btn.copied { color: var(--teal); border-color: rgba(0,212,170,0.35); }
+
         /* ── Empty state ────────────────────────────────────────────── */
         .empty-state {
             display: flex;
@@ -478,6 +525,7 @@
         <a href="/" class="nav-link active">Feed</a>
         <a href="/account/apps.html" class="nav-link">Apps</a>
         <a href="/account/keys.html" class="nav-link">API Keys</a>
+        <a href="/account/admin.html" class="nav-link" id="admin-link" hidden>Admin</a>
     </nav>
     <div class="header-spacer"></div>
     <div id="conn-status">

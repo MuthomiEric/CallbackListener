@@ -36,7 +36,8 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
             e.HasOne(x => x.Listener)
              .WithMany(l => l.ApiKeys)
              .HasForeignKey(x => x.ListenerId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

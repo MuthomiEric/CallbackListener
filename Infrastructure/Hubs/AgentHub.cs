@@ -36,10 +36,19 @@ public sealed class AgentHub : Hub
         var httpContext = Context.GetHttpContext();
         var apiKey = httpContext?.Request.Headers["X-Api-Key"].FirstOrDefault()
                   ?? httpContext?.Request.Query["apiKey"].FirstOrDefault();
+        var slug   = httpContext?.Request.Query["slug"].FirstOrDefault();
 
         if (string.IsNullOrEmpty(apiKey))
         {
             _logger.LogWarning("Agent connection rejected — no API key from {Ip}",
+                httpContext?.Connection.RemoteIpAddress);
+            Context.Abort();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(slug))
+        {
+            _logger.LogWarning("Agent connection rejected — no slug from {Ip}",
                 httpContext?.Connection.RemoteIpAddress);
             Context.Abort();
             return;
@@ -51,9 +60,7 @@ public sealed class AgentHub : Hub
         {
             var db   = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var hash = KeyHasher.Hash(apiKey);
-            var keyRecord = await db.ApiKeys
-                .Include(k => k.Listener)
-                .FirstOrDefaultAsync(k => k.KeyHash == hash);
+            var keyRecord = await db.ApiKeys.FirstOrDefaultAsync(k => k.KeyHash == hash);
 
             if (keyRecord is null)
             {
@@ -63,10 +70,19 @@ public sealed class AgentHub : Hub
                 return;
             }
 
+            // Verify the user actually owns a listener with this slug
+            var ownsSlug = await db.Listeners.AnyAsync(l => l.Slug == slug && l.UserId == keyRecord.UserId);
+            if (!ownsSlug)
+            {
+                _logger.LogWarning("Agent connection rejected — user does not own slug '{Slug}'", slug);
+                Context.Abort();
+                return;
+            }
+
             keyRecord.LastUsedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
-            clientId = keyRecord.Listener.Slug;
-            userId   = keyRecord.Listener.UserId;
+            clientId = slug;
+            userId   = keyRecord.UserId;
         }
 
         Context.Items["clientId"] = clientId;
