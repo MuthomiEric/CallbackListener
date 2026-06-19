@@ -3,7 +3,7 @@
 // ── Auth guard ────────────────────────────────────────────────────────────────
 (async () => {
     const res = await fetch("/auth/me");
-    if (!res.ok) { window.location.replace("/account/login.html"); return; }
+    if (!res.ok) { window.location.replace("/account/login"); return; }
     const me = await res.json();
     currentUserId = me.id;
     const avatarEl = document.getElementById("avatar-el");
@@ -31,7 +31,7 @@ document.addEventListener("click", () => {
 
 document.getElementById("signout-btn")?.addEventListener("click", async () => {
     await fetch("/auth/logout", { method: "POST" });
-    location.replace("/account/login.html");
+    location.replace("/account/login");
 });
 
 // ── State ──────────────────────────────────────────────────────────────────────

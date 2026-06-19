@@ -151,6 +151,24 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 app.UseRateLimiter();
 app.UseDefaultFiles();
+
+// Rewrite extension-less paths to .html so /account/apps works like /account/apps.html
+app.Use(async (ctx, next) =>
+{
+    var path = ctx.Request.Path.Value ?? "";
+    if (!Path.HasExtension(path) &&
+        !path.StartsWith("/api/",     StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/auth/",    StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/hubs/",    StringComparison.OrdinalIgnoreCase))
+    {
+        var candidate = path.TrimEnd('/') + ".html";
+        var file = app.Environment.WebRootFileProvider.GetFileInfo(candidate);
+        if (file.Exists)
+            ctx.Request.Path = candidate;
+    }
+    await next(ctx);
+});
+
 app.UseStaticFiles();   // serves wwwroot files before routing touches anything
 app.UseRouting();       // explicit placement so catch-all never races with static files
 app.UseAuthentication();

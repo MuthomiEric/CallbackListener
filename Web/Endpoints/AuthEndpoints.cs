@@ -87,7 +87,7 @@ public static class AuthEndpoints
         group.MapGet("/google/complete", async (HttpContext ctx, SignInManager<AppUser> signInMgr, UserManager<AppUser> userMgr) =>
         {
             var info = await signInMgr.GetExternalLoginInfoAsync();
-            if (info is null) return Results.Redirect("/account/login.html?error=1");
+            if (info is null) return Results.Redirect("/account/login?error=1");
 
             var result = await signInMgr.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: true);
             if (result.Succeeded) return Results.Redirect("/");
@@ -97,7 +97,7 @@ public static class AuthEndpoints
 
             var user = new AppUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = name };
             var create = await userMgr.CreateAsync(user);
-            if (!create.Succeeded) return Results.Redirect("/account/login.html?error=1");
+            if (!create.Succeeded) return Results.Redirect("/account/login?error=1");
 
             await userMgr.AddLoginAsync(user, info);
             await signInMgr.SignInAsync(user, isPersistent: true);

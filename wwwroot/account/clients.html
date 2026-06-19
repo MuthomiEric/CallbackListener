@@ -141,9 +141,9 @@
     </div>
     <nav>
         <a href="/" class="nav-link">Feed</a>
-        <a href="apps.html" class="nav-link">Apps</a>
-        <a href="clients.html" class="nav-link active">Clients</a>
-        <a href="admin.html" class="nav-link" id="admin-link" hidden>Admin</a>
+        <a href="/account/apps" class="nav-link">Apps</a>
+        <a href="/account/clients" class="nav-link active">Clients</a>
+        <a href="/account/admin" class="nav-link" id="admin-link" hidden>Admin</a>
     </nav>
     <div class="header-spacer"></div>
     <div class="avatar-wrap">
@@ -275,7 +275,7 @@ function relTime(iso) {
 // ── Auth ──────────────────────────────────────────────────────────────────────
 (async () => {
     const meRes = await fetch("/auth/me");
-    if (!meRes.ok) { window.location.replace("/account/login.html"); return; }
+    if (!meRes.ok) { window.location.replace("/account/login"); return; }
     const me = await meRes.json();
     document.getElementById("avatar-el").textContent = me.initials;
     document.getElementById("user-menu-email").textContent = me.email;
@@ -290,7 +290,7 @@ document.getElementById("avatar-el").addEventListener("click", e => {
 document.addEventListener("click", () => { document.getElementById("user-menu").hidden = true; });
 document.getElementById("signout-btn").addEventListener("click", async () => {
     await fetch("/auth/logout", { method: "POST" });
-    location.replace("login.html");
+    location.replace("/account/login");
 });
 
 // ── Load ──────────────────────────────────────────────────────────────────────
