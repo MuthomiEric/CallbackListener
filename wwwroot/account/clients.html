@@ -108,9 +108,13 @@
         .btn-done:hover { background: #1a1a1a; color: #c6c6c6; }
 
         .install-box { background: #0c0c0c; border: 1px solid #232323; border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
-        .install-label { font-size: 11px; color: #5a5a5a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.07em; }
+        .install-box-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .install-label { font-size: 11px; color: #5a5a5a; text-transform: uppercase; letter-spacing: 0.07em; }
         .install-cmd { font-size: 12px; color: #9a9a9a; font-family: "Consolas", monospace; word-break: break-all; line-height: 1.6; }
         .install-cmd strong { color: #34e0a8; }
+        .btn-copy-cmd { height: 24px; padding: 0 9px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; color: #8a8a8a; font-size: 11px; font-weight: 550; font-family: inherit; cursor: pointer; transition: background 120ms, color 120ms; white-space: nowrap; }
+        .btn-copy-cmd:hover { background: #222; color: #c6c6c6; }
+        .btn-copy-cmd.copied { color: #34e0a8; border-color: rgba(0,214,143,0.3); }
 
         .stage { display: none; }
         .stage.active { display: block; }
@@ -226,7 +230,10 @@
                 </button>
 
                 <div class="install-box">
-                    <div class="install-label">Install command</div>
+                    <div class="install-box-head">
+                        <span class="install-label">Install command</span>
+                        <button class="btn-copy-cmd" id="copy-cmd-btn">Copy</button>
+                    </div>
                     <div class="install-cmd" id="install-cmd"></div>
                 </div>
 
@@ -240,10 +247,12 @@
 <script>
 "use strict";
 
-let clients    = [];
-let currentKey = "";
-let copyTimer  = null;
-let serverOrigin = location.origin;
+let clients       = [];
+let currentKey    = "";
+let currentCmd    = "";
+let copyTimer     = null;
+let copyCmdTimer  = null;
+let serverOrigin  = location.origin;
 
 function esc(s) { return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—"; }
@@ -377,8 +386,11 @@ document.getElementById("create-btn").addEventListener("click", async () => {
 
     document.getElementById("reveal-label").textContent = data.label;
     document.getElementById("key-val").textContent      = currentKey;
+    currentCmd = `CallbackAgent install --server ${serverOrigin} --api-key ${currentKey}`;
     document.getElementById("install-cmd").innerHTML    =
         `<strong>CallbackAgent install</strong> --server ${esc(serverOrigin)} --api-key ${esc(currentKey)}`;
+    document.getElementById("copy-cmd-btn").textContent = "Copy";
+    document.getElementById("copy-cmd-btn").classList.remove("copied");
 
     setStage("reveal");
 
@@ -390,6 +402,15 @@ document.getElementById("copy-key-btn").addEventListener("click", () => {
     document.getElementById("copy-key-label").textContent = "Copied!";
     clearTimeout(copyTimer);
     copyTimer = setTimeout(() => { document.getElementById("copy-key-label").textContent = "Copy key"; }, 1600);
+});
+
+document.getElementById("copy-cmd-btn").addEventListener("click", () => {
+    try { navigator.clipboard?.writeText(currentCmd); } catch {}
+    const btn = document.getElementById("copy-cmd-btn");
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    clearTimeout(copyCmdTimer);
+    copyCmdTimer = setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1600);
 });
 
 document.getElementById("done-btn").addEventListener("click", () => { closeModal(); render(); });
