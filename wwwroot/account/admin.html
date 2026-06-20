@@ -4,220 +4,322 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin — Callback Relay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+        html, body { height: 100%; overflow: hidden; }
         body {
-            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-            background: #0a0a0a;
-            color: #e6e6e6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            -webkit-font-smoothing: antialiased;
-            font-size: 13px;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #121414; color: #e2e2e2;
+            display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased; font-size: 13px;
         }
+        ::selection { background: rgba(156,220,254,0.25); }
+        ::-webkit-scrollbar { width: 11px; height: 11px; }
+        ::-webkit-scrollbar-track { background: #121414; }
+        ::-webkit-scrollbar-thumb { background: #40484d; }
+        ::-webkit-scrollbar-thumb:hover { background: #8a9297; }
+        .ms {
+            font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal;
+            line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
+            word-wrap: normal; direction: ltr; -webkit-font-smoothing: antialiased;
+        }
+        @keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(78,201,176,0.5); } 70% { box-shadow: 0 0 0 5px rgba(78,201,176,0); } 100% { box-shadow: 0 0 0 0 rgba(78,201,176,0); } }
 
-        ::selection { background: rgba(0,212,170,0.28); }
-        ::-webkit-scrollbar { width: 11px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; border: 3px solid #0a0a0a; }
-        ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+        /* ── Layout ── */
+        .vsc-body { display: flex; flex: 1; min-height: 0; }
 
-        /* ── VS Code Chrome ── */
-        header { display: flex; flex-direction: column; background: #252526; flex-shrink: 0; }
-
-        .titlebar { display: flex; align-items: center; height: 30px; background: #3c3c3c; padding: 0 12px; gap: 10px; -webkit-user-select: none; user-select: none; }
-        .tl-group { display: flex; align-items: center; gap: 6px; }
-        .tl { width: 11px; height: 11px; border-radius: 50%; }
-        .tl-r { background: #ff5f57; }
-        .tl-y { background: #febc2e; }
-        .tl-g { background: #28c840; }
-        .titlebar-name { flex: 1; font-size: 12px; color: #cccccc; text-align: center; }
-
-        .tabbar { display: flex; align-items: stretch; height: 38px; border-bottom: 1px solid #1e1e1e; overflow-x: auto; overflow-y: hidden; }
-        .tabbar::-webkit-scrollbar { height: 0; }
-        .tab-brand { display: flex; align-items: center; padding: 0 14px; border-right: 1px solid #1e1e1e; flex-shrink: 0; }
-        .tab-item { display: flex; align-items: center; gap: 7px; padding: 0 16px; color: #969696; font-size: 12.5px; text-decoration: none; border-top: 2px solid transparent; border-right: 1px solid #1e1e1e; background: #2d2d30; transition: color 100ms; white-space: nowrap; flex-shrink: 0; }
-        .tab-item:hover { color: #cccccc; }
-        .tab-item.active { color: #ffffff; background: #1e1e1e; border-top-color: #007acc; }
-
-        .avatar-wrap { position: relative; display: flex; align-items: center; }
-        .avatar { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #0e639c; border: none; color: #ffffff; font-size: 10px; font-weight: 600; cursor: pointer; transition: background 120ms; }
-        .avatar:hover { background: #1177bb; }
-        .user-menu { position: absolute; right: 0; top: calc(100% + 4px); background: #252526; border: 1px solid #454545; border-radius: 5px; min-width: 172px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 100; }
+        /* ── Activity bar ── */
+        .actbar {
+            width: 56px; flex: none; background: #0d0e0f;
+            border-right: 1px solid #2c3032;
+            display: flex; flex-direction: column; align-items: center; padding: 14px 0;
+        }
+        .actbar-logo { color: #9cdcfe; margin-bottom: 22px; cursor: default; }
+        .actbar-nav { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 2px; }
+        .actbar-item {
+            display: flex; align-items: center; justify-content: center;
+            height: 46px; color: #8a9297; border-left: 2px solid transparent;
+            text-decoration: none; transition: color 120ms, background 120ms;
+        }
+        .actbar-item:hover { background: #1a1c1c; color: #e2e2e2; }
+        .actbar-item.active { color: #9cdcfe; border-left-color: #9cdcfe; background: #1a1c1c; }
+        .actbar-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .avatar-wrap { position: relative; }
+        .avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #1c6583; border: none; color: #e0f3ff;
+            font-size: 11px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Inter', system-ui;
+        }
+        .avatar:hover { background: #1e7399; }
+        .user-menu {
+            position: absolute; left: calc(100% + 8px); bottom: 0;
+            background: #252526; border: 1px solid #454545;
+            min-width: 190px; overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 100;
+        }
         .user-menu-email { padding: 8px 12px; font-size: 11px; color: #858585; border-bottom: 1px solid #3c3c3c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .user-menu-signout { display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #cccccc; font-size: 12px; font-family: inherit; text-align: left; cursor: pointer; transition: background 100ms; }
-        .user-menu-signout:hover { background: #094771; color: #ffffff; }
+        .user-menu-signout:hover { background: #094771; color: #fff; }
 
-        /* ── Page ── */
-        .page { flex: 1; max-width: 900px; width: 100%; margin: 0 auto; padding: 32px 24px 40px; }
+        /* ── Explorer sidebar ── */
+        .explorer {
+            width: 250px; flex: none; background: #1a1c1c;
+            border-right: 1px solid #2c3032;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .explorer-head { padding: 11px 16px 6px; font-size: 11px; letter-spacing: 0.08em; color: #8a9297; text-transform: uppercase; flex: none; }
+        .explorer-folder { display: flex; align-items: center; gap: 4px; padding: 4px 12px; flex: none; }
+        .explorer-file {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 12px 5px 30px; text-decoration: none;
+            border-left: 2px solid transparent; color: #c0c8cd; transition: background 100ms;
+        }
+        .explorer-file:hover { background: #1f2222; }
+        .explorer-file.ef-active { background: #20302e; border-left-color: #4EC9B0; color: #e2e2e2; }
+        .ef-icon { font-size: 16px; color: #DCDCAA; flex: none; }
+        .ef-icon-db { color: #9cdcfe; }
+        .ef-name { font-size: 13px; font-family: 'JetBrains Mono', monospace; }
 
-        /* ── Footer ── */
-        footer { display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 12px; background: #007acc; flex-shrink: 0; }
-        .footer-brand { display: flex; align-items: center; gap: 6px; }
-        .footer-brand span { font-size: 11px; color: rgba(255,255,255,0.9); font-weight: 600; letter-spacing: -0.01em; }
-        .footer-copy { font-size: 11px; color: rgba(255,255,255,0.8); }
+        /* ── Editor area ── */
+        .editor-area { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #121414; }
+        .editor-tabs { display: flex; align-items: stretch; height: 36px; background: #1e2020; border-bottom: 1px solid #2c3032; flex: none; }
+        .editor-tab { display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #1a1c1c; border-right: 1px solid #2c3032; color: #8a9297; font-size: 13px; white-space: nowrap; }
+        .editor-tab.et-active { background: #121414; border-top: 2px solid #8fcff0; color: #e2e2e2; }
+        .et-spacer { flex: 1; }
+        .et-actions { display: flex; align-items: center; gap: 14px; padding: 0 14px; color: #6a7177; }
+        .breadcrumb-bar { display: flex; align-items: center; gap: 4px; height: 26px; padding: 0 16px; background: #121414; border-bottom: 1px solid #1f2222; flex: none; }
+        .bc-seg { font-size: 11px; color: #8a9297; letter-spacing: 0.04em; }
+        .bc-active { color: #9cdcfe; }
+        .bc-sep { font-size: 13px; color: #6a7177; }
+        .bc-comment { margin-left: 12px; font-size: 11px; color: #6a7177; font-family: 'JetBrains Mono', monospace; }
 
-        .page-header {
-            display: flex; align-items: baseline; gap: 12px;
-            margin-bottom: 24px;
-        }
-        .page-title { font-size: 18px; font-weight: 650; letter-spacing: -0.02em; }
-        .page-subtitle { font-size: 12px; color: #5a5a5a; }
+        /* ── Content ── */
+        .editor-content { flex: 1; overflow-y: auto; padding: 22px 24px 50px; }
 
-        /* ── Stats row ── */
-        .stats-row {
-            display: flex; gap: 12px; margin-bottom: 24px;
-        }
-        .stat-card {
-            flex: 1; background: #111; border: 1px solid #1f1f1f;
-            border-radius: 9px; padding: 14px 16px;
-        }
-        .stat-val {
-            font-size: 22px; font-weight: 700; font-family: "Consolas", monospace;
-            letter-spacing: -0.03em; color: #e6e6e6;
-        }
-        .stat-label { font-size: 11px; color: #5a5a5a; margin-top: 3px; }
+        /* ── Page header ── */
+        .page-comment { font-size: 11px; color: #6A9955; font-family: 'JetBrains Mono', monospace; margin-bottom: 6px; }
+        h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: #9cdcfe; font-family: 'JetBrains Mono', monospace; margin-bottom: 18px; }
+        h1 span { color: #6a7177; }
+
+        /* ── Stats grid ── */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+        .stat-card { border: 1px solid #2c3032; background: #1a1c1c; transition: border-color 120ms; }
+        .stat-card:hover { border-color: #4a5258; }
+        .stat-card-head { display: flex; align-items: center; gap: 7px; padding: 8px 12px; background: #0d0e0f; border-bottom: 1px solid #2c3032; }
+        .stat-key { font-size: 11px; color: #6a7177; font-family: 'JetBrains Mono', monospace; }
+        .stat-body { padding: 16px 14px; }
+        .stat-val { font-size: 30px; font-weight: 700; color: #9cdcfe; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+        .stat-label { font-size: 12px; color: #8a9297; margin-top: 8px; font-family: 'JetBrains Mono', monospace; }
 
         /* ── Table ── */
-        .table-wrap {
-            background: #111; border: 1px solid #1f1f1f; border-radius: 10px;
-            overflow: hidden;
+        .table-shell { border: 1px solid #2c3032; }
+        .table-head {
+            display: grid;
+            grid-template-columns: 44px 1.9fr 1fr 0.6fr 0.6fr 0.9fr 1fr;
+            gap: 14px; padding: 9px 14px; border-bottom: 1px solid #2c3032; background: #1a1c1c;
         }
+        .th { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase; }
+        .table-body { display: flex; flex-direction: column; }
 
-        table { width: 100%; border-collapse: collapse; }
-
-        thead th {
-            padding: 10px 14px; font-size: 11px; font-weight: 700;
-            letter-spacing: 0.07em; text-transform: uppercase;
-            color: #5a5a5a; text-align: left;
-            border-bottom: 1px solid #1a1a1a;
-            background: #0f0f0f;
+        .user-row {
+            display: grid;
+            grid-template-columns: 44px 1.9fr 1fr 0.6fr 0.6fr 0.9fr 1fr;
+            gap: 14px; padding: 13px 14px; align-items: center;
+            border-bottom: 1px solid #1c1e1e; transition: background 120ms;
         }
+        .user-row:hover { background: #16191a; }
+        .user-row:last-child { border-bottom: none; }
 
-        tbody tr { border-bottom: 1px solid #161616; transition: background 100ms; }
-        tbody tr:last-child { border-bottom: none; }
-        tbody tr:hover { background: #141414; }
-
-        td { padding: 12px 14px; vertical-align: middle; }
-
-        .user-cell { display: flex; flex-direction: column; gap: 2px; }
-        .user-name  { font-weight: 550; color: #d6d6d6; }
-        .user-email { font-size: 11px; color: #5a5a5a; }
-
-        .mono { font-family: "Consolas", "JetBrains Mono", monospace; }
-
-        .badge-live {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 11px; font-weight: 600;
-            color: #34e0a8; background: rgba(0,214,143,0.1);
-            border-radius: 5px; padding: 2px 8px;
+        .cell-linenum { font-size: 12px; color: #3f4a44; font-family: 'JetBrains Mono', monospace; }
+        .user-identity { display: flex; align-items: center; gap: 11px; min-width: 0; }
+        .user-avatar { width: 30px; height: 30px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none; }
+        .user-name  { font-size: 13px; color: #e2e2e2; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-email { font-size: 12px; color: #CE9178; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cell-joined { font-size: 12px; color: #8a9297; font-family: 'JetBrains Mono', monospace; }
+        .cell-num    { font-size: 13px; color: #b5cea8; font-family: 'JetBrains Mono', monospace; }
+        .cell-agent-online {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11px; padding: 3px 8px;
+            border: 1px solid rgba(78,201,176,0.4); color: #4EC9B0;
+            font-family: 'JetBrains Mono', monospace;
         }
-        .live-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: #00d68f;
-            animation: pulse 2.4s infinite;
-        }
-        @keyframes pulse {
-            0%   { box-shadow: 0 0 0 0   rgba(0,214,143,0.5); }
-            70%  { box-shadow: 0 0 0 5px rgba(0,214,143,0); }
-            100% { box-shadow: 0 0 0 0   rgba(0,214,143,0); }
-        }
+        .agent-dot { width: 6px; height: 6px; border-radius: 50%; background: #4EC9B0; animation: pulse-dot 2.4s infinite; }
+        .cell-last { font-size: 12px; font-family: 'JetBrains Mono', monospace; }
 
-        .joined { font-size: 12px; color: #6a6a6a; }
-        .last-cb { font-size: 12px; color: #6a6a6a; }
-
-        .empty-row td {
-            text-align: center; padding: 40px 14px;
-            color: #4a4a4a; font-size: 13px;
+        /* ── Status bar ── */
+        .statusbar {
+            height: 24px; background: #9cdcfe; color: #16627f;
+            display: flex; align-items: center; flex: none;
+            font-size: 12px; font-family: 'JetBrains Mono', monospace;
         }
+        .sb-item { display: flex; align-items: center; gap: 5px; padding: 0 9px; height: 24px; cursor: default; white-space: nowrap; }
+        .sb-item:hover { background: rgba(22,98,127,0.14); }
+        .sb-spacer { flex: 1; }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="titlebar">
-        <div class="tl-group">
-            <span class="tl tl-r"></span>
-            <span class="tl tl-y"></span>
-            <span class="tl tl-g"></span>
+<div class="vsc-body">
+
+    <!-- ===== Activity bar ===== -->
+    <nav class="actbar">
+        <div class="actbar-logo"><span class="ms" style="font-size:26px">terminal</span></div>
+        <div class="actbar-nav">
+            <a href="/" class="actbar-item" title="Feed"><span class="ms" style="font-size:24px">sensors</span></a>
+            <a href="/account/apps" class="actbar-item" title="Apps"><span class="ms" style="font-size:24px">grid_view</span></a>
+            <a href="/account/clients" class="actbar-item" title="Clients"><span class="ms" style="font-size:24px">dns</span></a>
+            <a href="/account/admin" class="actbar-item active" title="Admin"><span class="ms" style="font-size:23px">shield_person</span></a>
         </div>
-        <span class="titlebar-name">Admin — Callback Relay</span>
-        <div class="avatar-wrap" id="avatar-wrap">
-            <button class="avatar" id="avatar-el">…</button>
-            <div class="user-menu" id="user-menu" hidden>
-                <div class="user-menu-email" id="user-menu-email"></div>
-                <button class="user-menu-signout" id="signout-btn">Sign out</button>
+        <div class="actbar-bottom">
+            <span class="ms" style="font-size:23px;color:#8a9297;cursor:default">settings</span>
+            <div class="avatar-wrap" id="avatar-wrap">
+                <button class="avatar" id="avatar-el">…</button>
+                <div class="user-menu" id="user-menu" hidden>
+                    <div class="user-menu-email" id="user-menu-email"></div>
+                    <button class="user-menu-signout" id="signout-btn">Sign out</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== Explorer sidebar ===== -->
+    <aside class="explorer">
+        <div class="explorer-head">Explorer</div>
+        <div class="explorer-folder">
+            <span class="ms" style="font-size:16px;color:#c0c8cd">expand_more</span>
+            <span style="font-size:12px;font-weight:600;letter-spacing:0.04em;color:#c0c8cd;text-transform:uppercase">callback-relay</span>
+        </div>
+        <a href="/" class="explorer-file">
+            <span class="ms ef-icon">bolt</span>
+            <span class="ef-name">feed.live</span>
+        </a>
+        <a href="/account/apps" class="explorer-file">
+            <span class="ms ef-icon">data_object</span>
+            <span class="ef-name">apps.json</span>
+        </a>
+        <a href="/account/clients" class="explorer-file">
+            <span class="ms ef-icon">data_object</span>
+            <span class="ef-name">clients.json</span>
+        </a>
+        <a href="/account/admin" class="explorer-file ef-active">
+            <span class="ms ef-icon ef-icon-db">database</span>
+            <span class="ef-name">users.db</span>
+        </a>
+    </aside>
+
+    <!-- ===== Editor area ===== -->
+    <div class="editor-area">
+
+        <div class="editor-tabs">
+            <div class="editor-tab et-active">
+                <span class="ms" style="font-size:16px;color:#9cdcfe">database</span>
+                <span>users.db</span>
+                <span class="ms" style="font-size:14px;color:#6a7177">close</span>
+            </div>
+            <div class="editor-tab">
+                <span class="ms" style="font-size:16px;color:#DCDCAA">data_object</span>
+                <span>clients.json</span>
+                <span class="ms" style="font-size:14px;color:#6a7177">close</span>
+            </div>
+            <div class="et-spacer"></div>
+            <div class="et-actions">
+                <span class="ms" style="font-size:17px">split_square</span>
+                <span class="ms" style="font-size:17px">more_horiz</span>
+            </div>
+        </div>
+
+        <div class="breadcrumb-bar">
+            <span class="bc-seg">callback-relay</span>
+            <span class="ms bc-sep">chevron_right</span>
+            <span class="bc-seg bc-active">users.db</span>
+            <span class="bc-comment" id="page-sub">// SELECT * FROM users</span>
+        </div>
+
+        <div class="editor-content">
+            <div class="page-comment">// platform overview</div>
+            <h1>users<span id="user-count-head"> · — accounts</span></h1>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#9cdcfe">group</span><span class="stat-key">users.count</span></div>
+                    <div class="stat-body"><div class="stat-val" id="s-users">—</div><div class="stat-label">total users</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#DCDCAA">grid_view</span><span class="stat-key">apps.count</span></div>
+                    <div class="stat-body"><div class="stat-val" id="s-apps">—</div><div class="stat-label">total apps</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#4EC9B0">sensors</span><span class="stat-key">agents.live</span></div>
+                    <div class="stat-body"><div class="stat-val" id="s-live">—</div><div class="stat-label">live agents</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#C586C0">key</span><span class="stat-key">keys.count</span></div>
+                    <div class="stat-body"><div class="stat-val" id="s-keys">—</div><div class="stat-label">api keys</div></div>
+                </div>
+            </div>
+
+            <div class="table-shell">
+                <div class="table-head">
+                    <span class="th">#</span>
+                    <span class="th">User</span>
+                    <span class="th">Joined</span>
+                    <span class="th">Apps</span>
+                    <span class="th">Keys</span>
+                    <span class="th">Agents</span>
+                    <span class="th">Last callback</span>
+                </div>
+                <div class="table-body" id="users-body"></div>
             </div>
         </div>
     </div>
-    <div class="tabbar">
-        <div class="tab-brand">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#007acc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#4ec9b0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="12" r="1.4" fill="#007acc"/>
-            </svg>
-        </div>
-        <a href="/" class="tab-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-            Feed
-        </a>
-        <a href="/account/apps" class="tab-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            Apps
-        </a>
-        <a href="/account/clients" class="tab-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-            Clients
-        </a>
-        <a href="/account/admin" class="tab-item active" id="admin-link">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-            Admin
-        </a>
-    </div>
-</header>
+</div>
 
-<div class="page">
-    <div class="page-header">
-        <span class="page-title">Users</span>
-        <span class="page-subtitle" id="page-sub">Loading…</span>
-    </div>
-
-    <div class="stats-row" id="stats-row">
-        <div class="stat-card"><div class="stat-val" id="s-users">—</div><div class="stat-label">Total users</div></div>
-        <div class="stat-card"><div class="stat-val" id="s-apps">—</div><div class="stat-label">Total apps</div></div>
-        <div class="stat-card"><div class="stat-val" id="s-live">—</div><div class="stat-label">Live agents</div></div>
-        <div class="stat-card"><div class="stat-val" id="s-keys">—</div><div class="stat-label">API keys</div></div>
-    </div>
-
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Joined</th>
-                    <th>Apps</th>
-                    <th>Keys</th>
-                    <th>Live agents</th>
-                    <th>Last callback</th>
-                </tr>
-            </thead>
-            <tbody id="users-body">
-                <tr class="empty-row"><td colspan="6">Loading…</td></tr>
-            </tbody>
-        </table>
-    </div>
+<!-- ===== Status bar ===== -->
+<div class="statusbar">
+    <div class="sb-item"><span class="ms" style="font-size:14px">account_tree</span><span style="font-size:11px">main</span></div>
+    <div class="sb-item"><span class="ms" style="font-size:14px">sync</span></div>
+    <div class="sb-spacer"></div>
+    <div class="sb-item"><span style="font-size:11px" id="sb-user-count">— users</span></div>
+    <div class="sb-item"><span style="font-size:11px">SQLite</span></div>
+    <div class="sb-item"><span style="font-size:11px">ASP.NET 9</span></div>
 </div>
 
 <script>
 "use strict";
 
-// ── Auth guard ────────────────────────────────────────────────────────────────
+const AVATAR_COLORS = ["#1c6583","#804e39","#683367","#16627f","#446030","#5a3a6a"];
+function avatarColor(email) {
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) hash = (hash * 31 + email.charCodeAt(i)) & 0xffffffff;
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+function initials(name) {
+    return (name || "").replace(/[^a-zA-Z ]/g,"").trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase() || "?";
+}
+
+function esc(str) {
+    return String(str ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
+}
+function relTime(iso) {
+    const secs = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (secs < 60)    return "just now";
+    if (secs < 3600)  return `${Math.floor(secs/60)}m ago`;
+    if (secs < 86400) return `${Math.floor(secs/3600)}h ago`;
+    return `${Math.floor(secs/86400)}d ago`;
+}
+
 (async () => {
     const meRes = await fetch("/auth/me");
-    if (!meRes.ok) { window.location.replace("/account/login"); return; }
+    if (!meRes.ok) { window.location.replace("/landing"); return; }
     const me = await meRes.json();
     if (!me.isAdmin) { window.location.replace("/"); return; }
 
@@ -238,10 +340,9 @@ document.addEventListener("click", () => {
 });
 document.getElementById("signout-btn").addEventListener("click", async () => {
     await fetch("/auth/logout", { method: "POST" });
-    location.replace("/account/login");
+    location.replace("/landing");
 });
 
-// ── Data ──────────────────────────────────────────────────────────────────────
 async function loadUsers() {
     const res = await fetch("/api/admin/users");
     if (!res.ok) { window.location.replace("/"); return; }
@@ -258,65 +359,46 @@ function render(users) {
     document.getElementById("s-apps").textContent  = totalApps;
     document.getElementById("s-live").textContent  = totalLive;
     document.getElementById("s-keys").textContent  = totalKeys;
-    document.getElementById("page-sub").textContent = `${users.length} account${users.length !== 1 ? "s" : ""}`;
+    document.getElementById("user-count-head").textContent = ` · ${users.length} account${users.length !== 1 ? "s" : ""}`;
+    document.getElementById("page-sub").textContent = `// SELECT * FROM users — ${users.length} rows`;
+    const sbCount = document.getElementById("sb-user-count");
+    if (sbCount) sbCount.textContent = `${users.length} users`;
 
-    const tbody = document.getElementById("users-body");
+    const body = document.getElementById("users-body");
     if (users.length === 0) {
-        tbody.innerHTML = `<tr class="empty-row"><td colspan="6">No users found.</td></tr>`;
+        body.innerHTML = `<div style="padding:32px 14px;text-align:center;color:#6a7177;font-family:'JetBrains Mono',monospace;font-size:13px;">// no users found</div>`;
         return;
     }
 
-    tbody.innerHTML = users.map(u => `
-        <tr>
-            <td>
-                <div class="user-cell">
-                    <span class="user-name">${esc(u.displayName || u.email)}</span>
-                    <span class="user-email">${esc(u.email)}</span>
+    body.innerHTML = users.map((u, i) => {
+        const displayName = u.displayName || u.email;
+        const ini = initials(displayName);
+        const bg  = avatarColor(u.email);
+        const lineNo = String(i + 1).padStart(2, "0");
+        const agentCell = u.isOnline
+            ? `<span class="cell-agent-online"><span class="agent-dot"></span>${u.appCount ? u.appCount : "1"} online</span>`
+            : `<span style="font-size:13px;color:#6a7177;font-family:'JetBrains Mono',monospace;">null</span>`;
+        const lastCell = u.lastCallback
+            ? `<span class="cell-last" style="color:#8a9297">${relTime(u.lastCallback)}</span>`
+            : `<span class="cell-last" style="color:#6a7177">—</span>`;
+        return `
+        <div class="user-row">
+            <span class="cell-linenum">${lineNo}</span>
+            <div class="user-identity">
+                <span class="user-avatar" style="background:${bg}">${esc(ini)}</span>
+                <div style="min-width:0">
+                    <div class="user-name">${esc(displayName)}</div>
+                    <div class="user-email">${esc(u.email)}</div>
                 </div>
-            </td>
-            <td><span class="joined">${fmtDate(u.createdAt)}</span></td>
-            <td><span class="mono">${u.appCount}</span></td>
-            <td><span class="mono">${u.keyCount}</span></td>
-            <td>${u.isOnline
-                ? `<span class="badge-live"><span class="live-dot"></span>online</span>`
-                : `<span style="color:#3a3a3a">—</span>`}
-            </td>
-            <td><span class="last-cb">${u.lastCallback ? relTime(u.lastCallback) : "—"}</span></td>
-        </tr>
-    `).join("");
+            </div>
+            <span class="cell-joined">${fmtDate(u.createdAt)}</span>
+            <span class="cell-num">${u.appCount}</span>
+            <span class="cell-num">${u.keyCount}</span>
+            <span>${agentCell}</span>
+            ${lastCell}
+        </div>`;
+    }).join("");
 }
-
-function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
-function relTime(iso) {
-    const secs = Math.floor((Date.now() - new Date(iso)) / 1000);
-    if (secs < 60)   return "just now";
-    if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
-    if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
-    return `${Math.floor(secs / 86400)}d ago`;
-}
-
-function esc(str) {
-    return String(str ?? "")
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-document.getElementById("footer-year").textContent = new Date().getFullYear();
 </script>
-
-<footer>
-    <div class="footer-brand">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="12" cy="12" r="1.4" fill="rgba(255,255,255,0.9)"/>
-        </svg>
-        <span>Callback Relay</span>
-    </div>
-    <span class="footer-copy">&copy; <span id="footer-year"></span> Erick Muthomi</span>
-</footer>
 </body>
 </html>

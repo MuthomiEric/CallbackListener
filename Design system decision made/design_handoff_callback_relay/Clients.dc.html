@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #121414; }
+  ::selection { background: rgba(156,220,254,0.25); }
+  .ms { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track { background: #121414; }
+  ::-webkit-scrollbar-thumb { background: #40484d; }
+  ::-webkit-scrollbar-thumb:hover { background: #8a9297; }
+  @keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(78,201,176,0.5); } 70% { box-shadow: 0 0 0 5px rgba(78,201,176,0); } 100% { box-shadow: 0 0 0 0 rgba(78,201,176,0); } }
+  @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes modal-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .act:hover { background: #1a1c1c !important; color: #e2e2e2 !important; }
+  .file:hover { background: #1f2222 !important; }
+  .row:hover { background: #16191a !important; }
+  .prim:hover { background: #5fd6c0 !important; }
+  .ghost:hover { background: #1f2222 !important; color: #e2e2e2 !important; }
+  .removeb:hover { background: rgba(255,180,171,0.12) !important; color: #ffb4ab !important; border-color: rgba(255,180,171,0.45) !important; }
+  .copybig:hover { background: #5fd6c0 !important; }
+  .inp:focus { border-color: #9cdcfe !important; outline: none; }
+  .sb:hover { background: rgba(22,98,127,0.14) !important; }
+</style>
+</helmet>
+
+<div style="font-family: 'Inter', system-ui, sans-serif; background: #121414; color: #e2e2e2; height: 100vh; display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased;">
+  <div style="flex: 1; display: flex; min-height: 0;">
+
+    <nav style="width: 56px; flex: none; background: #0d0e0f; border-right: 1px solid #2c3032; display: flex; flex-direction: column; align-items: center; padding: 14px 0;">
+      <div style="color: #9cdcfe; margin-bottom: 22px;"><span class="ms" style="font-size: 26px;">terminal</span></div>
+      <div style="display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 2px;">
+        <a href="Dashboard.dc.html" class="act" title="Feed" style="display: flex; align-items: center; justify-content: center; height: 46px; color: #8a9297; border-left: 2px solid transparent; text-decoration: none;"><span class="ms" style="font-size: 24px;">sensors</span></a>
+        <a href="Apps.dc.html" class="act" title="Apps" style="display: flex; align-items: center; justify-content: center; height: 46px; color: #8a9297; border-left: 2px solid transparent; text-decoration: none;"><span class="ms" style="font-size: 24px;">grid_view</span></a>
+        <a href="Clients.dc.html" title="Clients" style="display: flex; align-items: center; justify-content: center; height: 46px; color: #9cdcfe; border-left: 2px solid #9cdcfe; background: #1a1c1c; text-decoration: none;"><span class="ms" style="font-size: 24px;">dns</span></a>
+        <a href="Admin.dc.html" class="act" title="Admin" style="display: flex; align-items: center; justify-content: center; height: 46px; color: #8a9297; border-left: 2px solid transparent; text-decoration: none;"><span class="ms" style="font-size: 23px;">shield_person</span></a>
+      </div>
+      <div style="margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <span class="ms" style="font-size: 23px; color: #8a9297; cursor: default;">settings</span>
+        <a href="Login.dc.html" title="Account" style="width: 28px; height: 28px; border-radius: 50%; background: #1c6583; color: #e0f3ff; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none;">NE</a>
+      </div>
+    </nav>
+
+    <aside style="width: 250px; flex: none; background: #1a1c1c; border-right: 1px solid #2c3032; display: flex; flex-direction: column; overflow: hidden;">
+      <div style="padding: 11px 16px 6px;"><span style="font-size: 11px; letter-spacing: 0.08em; color: #8a9297; text-transform: uppercase;">Explorer</span></div>
+      <div style="display: flex; align-items: center; gap: 4px; padding: 4px 12px;"><span class="ms" style="font-size: 16px; color: #c0c8cd;">expand_more</span><span style="font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: #c0c8cd; text-transform: uppercase;">callback-relay</span></div>
+      <a href="Dashboard.dc.html" class="file" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 30px; text-decoration: none; border-left: 2px solid transparent;"><span class="ms" style="font-size: 16px; color: #DCDCAA;">bolt</span><span style="font-size: 13px; color: #c0c8cd; font-family: 'JetBrains Mono';">feed.live</span></a>
+      <a href="Apps.dc.html" class="file" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 30px; text-decoration: none; border-left: 2px solid transparent;"><span class="ms" style="font-size: 16px; color: #DCDCAA;">data_object</span><span style="font-size: 13px; color: #c0c8cd; font-family: 'JetBrains Mono';">apps.json</span></a>
+      <a href="Clients.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 30px; text-decoration: none; background: #20302e; border-left: 2px solid #4EC9B0;"><span class="ms" style="font-size: 16px; color: #DCDCAA;">data_object</span><span style="font-size: 13px; color: #e2e2e2; font-family: 'JetBrains Mono';">clients.json</span></a>
+      <a href="Admin.dc.html" class="file" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 30px; text-decoration: none; border-left: 2px solid transparent;"><span class="ms" style="font-size: 16px; color: #9cdcfe;">database</span><span style="font-size: 13px; color: #c0c8cd; font-family: 'JetBrains Mono';">users.db</span></a>
+    </aside>
+
+    <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #121414;">
+      <div style="display: flex; align-items: stretch; height: 36px; background: #1e2020; border-bottom: 1px solid #2c3032; flex: none;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #121414; border-top: 2px solid #8fcff0; border-right: 1px solid #2c3032;"><span class="ms" style="font-size: 16px; color: #DCDCAA;">data_object</span><span style="font-size: 13px; color: #e2e2e2;">clients.json</span><span class="ms" style="font-size: 14px; color: #6a7177; margin-left: 2px;">close</span></div>
+        <div style="flex: 1;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 0 14px; color: #6a7177;"><span class="ms" style="font-size: 17px;">split_square</span><span class="ms" style="font-size: 17px;">more_horiz</span></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; height: 26px; padding: 0 16px; background: #121414; border-bottom: 1px solid #1f2222; flex: none;">
+        <span style="font-size: 11px; color: #8a9297;">callback-relay</span><span class="ms" style="font-size: 13px; color: #6a7177;">chevron_right</span><span style="font-size: 11px; color: #DCDCAA;">clients.json</span>
+        <span style="margin-left: 12px; font-size: 11px; color: #6a7177; font-family: 'JetBrains Mono';">// {{ clientCount }} machines registered</span>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 22px 24px 50px;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px;">
+          <div>
+            <div style="font-size: 11px; color: #6A9955; font-family: 'JetBrains Mono'; margin-bottom: 6px;">// machines running the relay agent</div>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: #9cdcfe; font-family: 'JetBrains Mono';">clients<span style="color:#6a7177;">[]</span></h1>
+          </div>
+          <button class="prim" onClick="{{ onAdd }}" style="display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 15px; background: #4EC9B0; color: #03261f; border: none; border-radius: 0; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono'; cursor: pointer; transition: background 120ms;"><span class="ms" style="font-size: 17px;">add</span>new client</button>
+        </div>
+
+        <div style="border: 1px solid #2c3032;">
+          <div style="display: grid; grid-template-columns: 44px 1.2fr 1.4fr 1fr 1fr 1fr auto; gap: 14px; padding: 9px 14px; border-bottom: 1px solid #2c3032; background: #1a1c1c;">
+            <span style="font-size: 11px; color: #6a7177; font-family: 'JetBrains Mono';">#</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase;">label</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase;">key</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase;">status</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase;">created</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase;">last used</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase; width: 88px;">actions</span>
+          </div>
+          <sc-for list="{{ clients }}" as="C" hint-placeholder-count="3">
+            <div class="row" style="display: grid; grid-template-columns: 44px 1.2fr 1.4fr 1fr 1fr 1fr auto; gap: 14px; padding: 14px; align-items: center; border-bottom: 1px solid #1c1e1e; transition: background 120ms;">
+              <span style="font-size: 12px; color: #3f4a44; font-family: 'JetBrains Mono';">{{ C.lineNo }}</span>
+              <span style="font-size: 13px; color: #CE9178; font-family: 'JetBrains Mono';">"{{ C.label }}"</span>
+              <span style="font-size: 12.5px; color: #c0c8cd; font-family: 'JetBrains Mono';">{{ C.masked }}</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px; justify-self: start; font-size: 13px; color: {{ C.statusColor }}; font-family: 'JetBrains Mono';"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{ C.statusDot }}; animation: {{ C.anim }};"></span>{{ C.statusLabel }}</span>
+              <span style="font-size: 12.5px; color: #8a9297; font-family: 'JetBrains Mono';">{{ C.created }}</span>
+              <span style="font-size: 12.5px; color: {{ C.lastColor }}; font-family: 'JetBrains Mono';">{{ C.lastUsed }}</span>
+              <div style="width: 88px;"><button class="removeb" onClick="{{ C.onRemove }}" style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; background: #1a1c1c; border: 1px solid #2c3032; border-radius: 0; color: #8a9297; font-size: 12px; font-family: 'JetBrains Mono'; cursor: pointer; transition: all 120ms;"><span class="ms" style="font-size: 14px;">delete</span>revoke</button></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div style="display: flex; align-items: center; height: 24px; background: #9cdcfe; color: #16627f; flex: none; font-size: 12px; font-family: 'JetBrains Mono';">
+    <div class="sb" style="display: flex; align-items: center; gap: 5px; padding: 0 9px; height: 24px;"><span class="ms" style="font-size: 14px;">account_tree</span><span style="font-size: 11px;">main*</span></div>
+    <div class="sb" style="display: flex; align-items: center; padding: 0 9px; height: 24px;"><span class="ms" style="font-size: 14px;">sync</span></div>
+    <div class="sb" style="display: flex; align-items: center; gap: 5px; padding: 0 9px; height: 24px;"><span class="ms" style="font-size: 14px;">error</span><span style="font-size: 11px;">0</span><span class="ms" style="font-size: 14px; margin-left: 4px;">warning</span><span style="font-size: 11px;">0</span></div>
+    <div style="flex: 1;"></div>
+    <div class="sb" style="display: flex; align-items: center; gap: 5px; padding: 0 9px; height: 24px;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #0a7d4f;"></span><span style="font-size: 11px; font-weight: 600;">Connected</span></div>
+    <div class="sb" style="display: flex; align-items: center; padding: 0 9px; height: 24px;"><span style="font-size: 11px;">{{ onlineCount }} online</span></div>
+    <div class="sb" style="display: flex; align-items: center; padding: 0 9px; height: 24px;"><span style="font-size: 11px;">JSON</span></div>
+    <div class="sb" style="display: flex; align-items: center; gap: 5px; padding: 0 10px; height: 24px;"><span style="font-size: 11px;">Prettier</span><span class="ms" style="font-size: 14px;">check_circle</span></div>
+  </div>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="">
+    <div onClick="{{ onClose }}" style="position: fixed; inset: 0; background: rgba(0,0,0,0.62); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50; animation: overlay-in 120ms ease;">
+      <div onClick="{{ stop }}" style="width: 100%; max-width: 500px; background: #1e2020; border: 1px solid #40484d; animation: modal-in 160ms ease;">
+        <div style="display: flex; align-items: center; gap: 9px; padding: 10px 14px; background: #0d0e0f; border-bottom: 1px solid #2c3032;">
+          <span style="width: 11px; height: 11px; border-radius: 50%; background: #ff5f56;"></span><span style="width: 11px; height: 11px; border-radius: 50%; background: #ffbd2e;"></span><span style="width: 11px; height: 11px; border-radius: 50%; background: #27c93f;"></span>
+          <span style="margin-left: 6px; font-size: 12px; color: #c0c8cd; font-family: 'JetBrains Mono';">{{ modalFile }}</span>
+          <div style="flex: 1;"></div>
+          <button class="ghost" onClick="{{ onClose }}" style="width: 26px; height: 22px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #8a9297; cursor: pointer;"><span class="ms" style="font-size: 16px;">close</span></button>
+        </div>
+
+        <sc-if value="{{ stageLabel }}" hint-placeholder-val="{{ true }}">
+          <div style="padding: 20px;">
+            <label style="display: block; font-size: 12px; color: #9cdcfe; margin-bottom: 6px; font-family: 'JetBrains Mono';">label</label>
+            <input class="inp" type="text" value="{{ label }}" onInput="{{ onLabel }}" placeholder="Work laptop, Home server…" style="width: 100%; height: 40px; padding: 0 12px; background: #121414; border: 1px solid #2c3032; border-radius: 0; color: #CE9178; font-size: 14px; font-family: 'JetBrains Mono';">
+            <p style="margin: 10px 0 0; font-size: 12px; color: #6A9955; line-height: 1.55; font-family: 'JetBrains Mono';">// name the machine. apps linked to this client tell the<br>// agent which callbacks to forward.</p>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #2c3032;">
+            <button class="ghost" onClick="{{ onClose }}" style="height: 38px; padding: 0 16px; background: transparent; border: 1px solid #2c3032; border-radius: 0; color: #c0c8cd; font-size: 13px; font-family: 'JetBrains Mono'; cursor: pointer; transition: all 120ms;">cancel</button>
+            <button class="prim" onClick="{{ onCreate }}" style="height: 38px; padding: 0 18px; background: #4EC9B0; color: #03261f; border: none; border-radius: 0; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono'; cursor: pointer; transition: background 120ms;">create client</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ stageReveal }}" hint-placeholder-val="">
+          <div style="padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 15px;"><span class="ms" style="font-size: 22px; color: #4EC9B0;">check_circle</span><div><div style="font-size: 14px; color: #e2e2e2; font-family: 'JetBrains Mono';">client created</div><div style="font-size: 12px; color: #6a7177; font-family: 'JetBrains Mono';">"{{ label }}"</div></div></div>
+            <div style="display: flex; align-items: flex-start; gap: 9px; background: rgba(255,165,2,0.08); border-left: 2px solid #DCDCAA; padding: 10px 12px; margin-bottom: 14px;"><span class="ms" style="font-size: 16px; color: #DCDCAA; margin-top: 1px;">warning</span><span style="font-size: 12px; color: #DCDCAA; line-height: 1.5; font-family: 'JetBrains Mono';">copy this key now — it won't be shown again. paste it into the agent config on this machine.</span></div>
+            <div style="background: #0d0e0f; border: 1px solid #2c3032; padding: 12px 13px; margin-bottom: 16px;"><span style="font-size: 13px; color: #4EC9B0; font-family: 'JetBrains Mono'; word-break: break-all;">{{ generatedKey }}</span></div>
+            <button class="copybig" onClick="{{ onCopyKey }}" style="width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #4EC9B0; color: #03261f; border: none; border-radius: 0; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono'; cursor: pointer; transition: background 120ms; margin-bottom: 9px;"><span class="ms" style="font-size: 16px;">content_copy</span>{{ copyKeyLabel }}</button>
+            <button class="ghost" onClick="{{ onDone }}" style="width: 100%; height: 38px; background: transparent; border: 1px solid #2c3032; border-radius: 0; color: #c0c8cd; font-size: 13px; font-family: 'JetBrains Mono'; cursor: pointer; transition: all 120ms;">done</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    clients: [
+      { label: "Personal", full: "cr_live_8f2a91c4be7d53d1", online: true, created: "Jun 19, 2026", lastUsed: "5m ago" },
+      { label: "Home server", full: "cr_live_3b71de0a55fc18b6", online: false, created: "Apr 14, 2026", lastUsed: "3 days ago" },
+      { label: "CI runner (staging)", full: "cr_live_c09ae42f18b6720a", online: false, created: "Mar 02, 2026", lastUsed: null },
+    ],
+    modalOpen: false, stage: "label", label: "", generatedKey: "", keyCopied: false,
+  };
+  onAdd = () => this.setState({ modalOpen: true, stage: "label", label: "", generatedKey: "", keyCopied: false });
+  onClose = () => this.setState({ modalOpen: false });
+  stop = (e) => e.stopPropagation();
+  onLabel = (e) => this.setState({ label: e.target.value });
+  rand = (n) => { const c = "0123456789abcdef"; let s = ""; for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * 16)]; return s; };
+  onCreate = () => { if (!this.state.label.trim()) return; this.setState({ stage: "reveal", generatedKey: "cr_live_" + this.rand(32) }); };
+  onCopyKey = () => { try { navigator.clipboard && navigator.clipboard.writeText(this.state.generatedKey); } catch (e) {} this.setState({ keyCopied: true }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ keyCopied: false }), 1600); };
+  onDone = () => { const k = this.state.generatedKey; this.setState((s) => ({ modalOpen: false, clients: [{ label: s.label, full: k, online: false, created: "Jun 19, 2026", lastUsed: null }, ...s.clients] })); };
+  remove = (i) => this.setState((s) => ({ clients: s.clients.filter((_, j) => j !== i) }));
+
+  renderVals() {
+    const { clients, modalOpen, stage, label, generatedKey, keyCopied } = this.state;
+    const rows = clients.map((c, i) => ({
+      lineNo: String(i + 1).padStart(2, "0"), label: c.label,
+      masked: "cr_live_••••" + c.full.slice(-4),
+      statusLabel: c.online ? "online" : "offline", statusColor: c.online ? "#4EC9B0" : "#8a9297", statusDot: c.online ? "#4EC9B0" : "#5a5a5a", anim: c.online ? "pulse-dot 2.4s infinite" : "none",
+      created: c.created, lastUsed: c.lastUsed || "never", lastColor: c.lastUsed ? "#8a9297" : "#6a7177",
+      onRemove: () => this.remove(i),
+    }));
+    return {
+      clients: rows, clientCount: clients.length, onlineCount: clients.filter((c) => c.online).length,
+      modalOpen, stageLabel: stage === "label", stageReveal: stage === "reveal", label, generatedKey,
+      modalFile: stage === "label" ? "new-client.json" : "client.key",
+      copyKeyLabel: keyCopied ? "copied to clipboard" : "copy key",
+      onAdd: this.onAdd, onClose: this.onClose, stop: this.stop, onLabel: this.onLabel, onCreate: this.onCreate, onCopyKey: this.onCopyKey, onDone: this.onDone,
+    };
+  }
+}
+</script>
+</body>
+</html>

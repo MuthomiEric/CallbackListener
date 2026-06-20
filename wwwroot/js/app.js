@@ -45,9 +45,9 @@ const unreadCounts = new Map();        // slug → count of unseen callbacks
 
 // ── Connection badge ────────────────────────────────────────────────────────────
 const CONN_STATES = {
-    online:    { dot: "#00d68f", text: "#34e0a8", bg: "rgba(0,214,143,0.08)",  border: "rgba(0,214,143,0.2)",  label: "Connected"     },
-    offline:   { dot: "#ff4757", text: "#ff6b78", bg: "rgba(255,71,87,0.08)",  border: "rgba(255,71,87,0.2)",  label: "Disconnected"  },
-    reconnect: { dot: "#ffa502", text: "#ffc97a", bg: "rgba(255,165,2,0.08)",  border: "rgba(255,165,2,0.2)",  label: "Reconnecting…" },
+    online:    { dot: "#0a7d4f", text: "#0d6548", bg: "transparent", border: "transparent", label: "Connected"     },
+    offline:   { dot: "#c53030", text: "#b52020", bg: "transparent", border: "transparent", label: "Disconnected"  },
+    reconnect: { dot: "#d97706", text: "#9a6800", bg: "transparent", border: "transparent", label: "Reconnecting…" },
 };
 
 function setStatus(state) {

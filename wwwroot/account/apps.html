@@ -4,543 +4,461 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apps — Callback Relay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+        html, body { height: 100%; overflow: hidden; }
         body {
-            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-            background: #0a0a0a;
-            color: #e6e6e6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            -webkit-font-smoothing: antialiased;
-            font-size: 13px;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #121414; color: #e2e2e2;
+            display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased; font-size: 13px;
         }
+        ::selection { background: rgba(156,220,254,0.25); }
+        ::-webkit-scrollbar { width: 11px; height: 11px; }
+        ::-webkit-scrollbar-track { background: #121414; }
+        ::-webkit-scrollbar-thumb { background: #40484d; }
+        ::-webkit-scrollbar-thumb:hover { background: #8a9297; }
+        .ms {
+            font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal;
+            line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
+            word-wrap: normal; direction: ltr; -webkit-font-smoothing: antialiased;
+        }
+        @keyframes overlay-in { from { opacity:0; } to { opacity:1; } }
+        @keyframes modal-in   { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
-        ::selection { background: rgba(0,212,170,0.28); }
-        ::-webkit-scrollbar { width: 11px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; border: 3px solid #0a0a0a; }
-        ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+        /* ── Layout ── */
+        .vsc-body { display: flex; flex: 1; min-height: 0; }
 
-        @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes modal-in   { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }
-
-        /* ── VS Code Chrome ── */
-        header { display: flex; flex-direction: column; background: #252526; flex-shrink: 0; }
-
-        .titlebar { display: flex; align-items: center; height: 30px; background: #3c3c3c; padding: 0 12px; gap: 10px; -webkit-user-select: none; user-select: none; }
-        .tl-group { display: flex; align-items: center; gap: 6px; }
-        .tl { width: 11px; height: 11px; border-radius: 50%; }
-        .tl-r { background: #ff5f57; }
-        .tl-y { background: #febc2e; }
-        .tl-g { background: #28c840; }
-        .titlebar-name { flex: 1; font-size: 12px; color: #cccccc; text-align: center; }
-
-        .tabbar { display: flex; align-items: stretch; height: 38px; border-bottom: 1px solid #1e1e1e; overflow-x: auto; overflow-y: hidden; }
-        .tabbar::-webkit-scrollbar { height: 0; }
-        .tab-brand { display: flex; align-items: center; padding: 0 14px; border-right: 1px solid #1e1e1e; flex-shrink: 0; }
-        .tab-item { display: flex; align-items: center; gap: 7px; padding: 0 16px; color: #969696; font-size: 12.5px; text-decoration: none; border-top: 2px solid transparent; border-right: 1px solid #1e1e1e; background: #2d2d30; transition: color 100ms; white-space: nowrap; flex-shrink: 0; }
-        .tab-item:hover { color: #cccccc; }
-        .tab-item.active { color: #ffffff; background: #1e1e1e; border-top-color: #007acc; }
-
-        .avatar-wrap { position: relative; display: flex; align-items: center; }
-        .avatar { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #0e639c; border: none; color: #ffffff; font-size: 10px; font-weight: 600; cursor: pointer; transition: background 120ms; }
-        .avatar:hover { background: #1177bb; }
-        .user-menu { position: absolute; right: 0; top: calc(100% + 4px); background: #252526; border: 1px solid #454545; border-radius: 5px; min-width: 172px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 100; }
+        /* ── Activity bar ── */
+        .actbar {
+            width: 56px; flex: none; background: #0d0e0f;
+            border-right: 1px solid #2c3032;
+            display: flex; flex-direction: column; align-items: center; padding: 14px 0;
+        }
+        .actbar-logo { color: #9cdcfe; margin-bottom: 22px; cursor: default; }
+        .actbar-nav { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 2px; }
+        .actbar-item {
+            display: flex; align-items: center; justify-content: center;
+            height: 46px; color: #8a9297; border-left: 2px solid transparent;
+            text-decoration: none; transition: color 120ms, background 120ms;
+        }
+        .actbar-item:hover { background: #1a1c1c; color: #e2e2e2; }
+        .actbar-item.active { color: #9cdcfe; border-left-color: #9cdcfe; background: #1a1c1c; }
+        .actbar-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .avatar-wrap { position: relative; }
+        .avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #1c6583; border: none; color: #e0f3ff;
+            font-size: 11px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Inter', system-ui;
+        }
+        .avatar:hover { background: #1e7399; }
+        .user-menu {
+            position: absolute; left: calc(100% + 8px); bottom: 0;
+            background: #252526; border: 1px solid #454545;
+            min-width: 190px; overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 100;
+        }
         .user-menu-email { padding: 8px 12px; font-size: 11px; color: #858585; border-bottom: 1px solid #3c3c3c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .user-menu-signout { display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #cccccc; font-size: 12px; font-family: inherit; text-align: left; cursor: pointer; transition: background 100ms; }
-        .user-menu-signout:hover { background: #094771; color: #ffffff; }
+        .user-menu-signout:hover { background: #094771; color: #fff; }
+
+        /* ── Explorer sidebar ── */
+        .explorer {
+            width: 250px; flex: none; background: #1a1c1c;
+            border-right: 1px solid #2c3032;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .explorer-head { padding: 11px 16px 6px; font-size: 11px; letter-spacing: 0.08em; color: #8a9297; text-transform: uppercase; flex: none; }
+        .explorer-folder { display: flex; align-items: center; gap: 4px; padding: 4px 12px; flex: none; }
+        .explorer-file {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 12px 5px 30px; text-decoration: none;
+            border-left: 2px solid transparent; color: #c0c8cd; transition: background 100ms;
+        }
+        .explorer-file:hover { background: #1f2222; }
+        .explorer-file.ef-active { background: #20302e; border-left-color: #4EC9B0; color: #e2e2e2; }
+        .ef-icon { font-size: 16px; color: #DCDCAA; flex: none; }
+        .ef-icon-db { color: #9cdcfe; }
+        .ef-name { font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+
+        /* ── Editor area ── */
+        .editor-area { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #121414; }
+        .editor-tabs { display: flex; align-items: stretch; height: 36px; background: #1e2020; border-bottom: 1px solid #2c3032; flex: none; }
+        .editor-tab { display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #1a1c1c; border-right: 1px solid #2c3032; color: #8a9297; font-size: 13px; white-space: nowrap; }
+        .editor-tab.et-active { background: #121414; border-top: 2px solid #8fcff0; color: #e2e2e2; }
+        .et-spacer { flex: 1; }
+        .et-actions { display: flex; align-items: center; gap: 14px; padding: 0 14px; color: #6a7177; }
+        .breadcrumb-bar { display: flex; align-items: center; gap: 4px; height: 26px; padding: 0 16px; background: #121414; border-bottom: 1px solid #1f2222; flex: none; }
+        .bc-seg { font-size: 11px; color: #8a9297; letter-spacing: 0.04em; }
+        .bc-active { color: #DCDCAA; }
+        .bc-sep { font-size: 13px; color: #6a7177; }
+        .bc-comment { margin-left: 12px; font-size: 11px; color: #6a7177; font-family: 'JetBrains Mono', monospace; }
 
         /* ── Content ── */
-        .content { flex: 1; max-width: 1120px; width: 100%; margin: 0 auto; padding: 30px 24px 40px; }
+        .editor-content { flex: 1; overflow-y: auto; padding: 22px 24px 50px; }
 
-        /* ── Footer ── */
-        footer { display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 12px; background: #007acc; flex-shrink: 0; }
-        .footer-brand { display: flex; align-items: center; gap: 6px; }
-        .footer-brand span { font-size: 11px; color: rgba(255,255,255,0.9); font-weight: 600; letter-spacing: -0.01em; }
-        .footer-copy { font-size: 11px; color: rgba(255,255,255,0.8); }
-
-        .page-head {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            margin-bottom: 22px;
-        }
-
-        h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 4px; }
-        .page-sub { font-size: 13px; color: #8a8a8a; }
-
+        /* ── Page header ── */
+        .page-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+        .page-comment { font-size: 11px; color: #6A9955; font-family: 'JetBrains Mono', monospace; margin-bottom: 6px; }
+        h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: #9cdcfe; font-family: 'JetBrains Mono', monospace; }
+        h1 span { color: #6a7177; }
+        .page-sub { font-size: 11px; color: #6a7177; font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
         .btn-primary {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            height: 38px;
-            padding: 0 15px;
-            background: #00d4aa;
-            color: #062d24;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 650;
-            font-family: inherit;
-            cursor: pointer;
-            transition: background 120ms;
+            display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 15px;
+            background: #4EC9B0; color: #03261f; border: none; border-radius: 0;
+            font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: background 120ms;
         }
-
-        .btn-primary:hover { background: #00e6b8; }
+        .btn-primary:hover { background: #5fd6c0; }
 
         /* ── Table ── */
-        .table-shell {
-            border: 1px solid #1f1f1f;
-            border-radius: 10px;
-            overflow: hidden;
-            background: #0d0d0d;
-        }
-
+        .table-shell { border: 1px solid #2c3032; }
         .table-head {
             display: grid;
-            grid-template-columns: 1.2fr 1.4fr 1.3fr 110px 0.8fr 108px;
-            gap: 16px;
-            padding: 11px 18px;
-            border-bottom: 1px solid #1f1f1f;
-            background: #111;
+            grid-template-columns: 44px 1.1fr 1.5fr 1.1fr 1fr 0.9fr auto;
+            gap: 14px; padding: 9px 14px; border-bottom: 1px solid #2c3032; background: #1a1c1c;
         }
-
-        .th {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.07em;
-            color: #6a6a6a;
-            text-transform: uppercase;
-        }
-
+        .th { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #8a9297; text-transform: uppercase; }
         .table-body { display: flex; flex-direction: column; }
 
-        .row-wrap {
-            border-bottom: 1px solid #161616;
-            transition: background 120ms;
-        }
-
-        .row-wrap:hover { background: #131313; }
+        .row-wrap { border-bottom: 1px solid #1c1e1e; transition: background 120ms; }
+        .row-wrap:hover { background: #16191a; }
         .row-wrap:last-child { border-bottom: none; }
 
         .row-grid {
             display: grid;
-            grid-template-columns: 1.2fr 1.4fr 1.3fr 110px 0.8fr 108px;
-            gap: 16px;
-            padding: 14px 18px;
-            align-items: center;
+            grid-template-columns: 44px 1.1fr 1.5fr 1.1fr 1fr 0.9fr auto;
+            gap: 14px; padding: 13px 14px; align-items: center;
         }
-
-        .cell-client { font-size: 12.5px; color: #9a9a9a; display: flex; align-items: center; gap: 6px; }
-        .cell-client.online { color: #34e0a8; }
-        .client-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-        .client-dot.online  { background: #00d68f; }
-        .client-dot.offline { background: #3a3a3a; }
-        .cell-client-none { font-size: 12px; color: #3a3a3a; font-style: italic; }
+        .cell-linenum { font-size: 12px; color: #3f4a44; font-family: 'JetBrains Mono', monospace; }
+        .cell-slug { font-size: 13px; color: #C586C0; font-family: 'JetBrains Mono', monospace; }
+        .cell-label { font-size: 13px; color: #CE9178; font-family: 'JetBrains Mono', monospace; }
+        .cell-client { font-size: 13px; color: #d4d4d4; display: flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; }
+        .cell-client.no-client { color: #6a7177; }
+        .client-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+        .client-dot.online  { background: #4EC9B0; }
+        .client-dot.offline { background: #6a7177; }
 
         .mode-select {
-            height: 28px;
-            padding: 0 6px;
-            background: #141414;
-            border: 1px solid #2a2a2a;
-            border-radius: 6px;
-            color: #c6c6c6;
-            font-size: 11.5px;
-            font-family: inherit;
-            cursor: pointer;
-            outline: none;
-            width: 100%;
-            transition: border-color 120ms;
+            height: 30px; padding: 0 6px; background: #1a1c1c;
+            border: 1px solid #2c3032; border-radius: 0; color: #c0c8cd;
+            font-size: 12px; font-family: 'JetBrains Mono', monospace; cursor: pointer; outline: none; width: 100%;
         }
-        .mode-select:focus { border-color: #00d4aa; }
-        .mode-select option { background: #141414; }
-
-        .cell-slug  { font-size: 13px; color: #c4b5fd; font-family: "Consolas", monospace; font-weight: 500; }
-        .cell-label { font-size: 13px; color: #d6d6d6; }
-
-        .cell-relay {
-            font-size: 11.5px;
-            color: #5eead4;
-            font-family: "Consolas", monospace;
-            background: rgba(45,212,191,0.09);
-            padding: 4px 9px;
-            border-radius: 6px;
-            justify-self: start;
-            white-space: nowrap;
-        }
+        .mode-select:focus { border-color: #9cdcfe; }
+        .mode-select option { background: #1a1c1c; }
 
         .badge-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            padding: 4px 9px;
-            border-radius: 6px;
-            justify-self: start;
-            white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
+            padding: 3px 8px; border: 1px solid; font-family: 'JetBrains Mono', monospace; justify-self: start; white-space: nowrap;
         }
-
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
         .actions { display: flex; gap: 5px; }
 
         .icon-btn {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #141414;
-            border: 1px solid #2a2a2a;
-            border-radius: 7px;
-            color: #8a8a8a;
-            cursor: pointer;
-            transition: background 120ms, color 120ms, border-color 120ms;
+            width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+            background: #1a1c1c; border: 1px solid #2c3032; border-radius: 0; color: #8a9297;
+            cursor: pointer; transition: background 120ms, color 120ms, border-color 120ms;
         }
-
-        .icon-btn:hover { background: #1f1f1f; color: #e6e6e6; border-color: #333; }
-        .icon-btn.del:hover    { background: rgba(255,71,87,0.12); color: #ff6b78; border-color: rgba(255,71,87,0.35); }
-        .icon-btn.copy-url-btn.copied { color: #34e0a8; border-color: rgba(0,212,170,0.35); }
+        .icon-btn:hover { background: #282a2b; color: #e2e2e2; border-color: #4a5258; }
+        .icon-btn.del:hover { background: rgba(255,180,171,0.12); color: #ffb4ab; border-color: rgba(255,180,171,0.45); }
+        .icon-btn.copy-url-btn.copied { color: #4EC9B0; border-color: rgba(78,201,176,0.35); }
 
         /* ── URL bar ── */
         .url-bar {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            margin: 0 18px 12px;
-            background: #111;
-            border: 1px solid #1c1c1c;
-            border-radius: 7px;
-            padding: 7px 10px;
+            display: flex; align-items: center; gap: 9px;
+            margin: 0 14px 12px 58px;
+            background: #0d0e0f; border: 1px solid #1f2424; padding: 7px 11px;
         }
-
-        .url-bar-label {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            color: #5a5a5a;
-            text-transform: uppercase;
-            flex-shrink: 0;
+        .url-method { font-size: 11px; font-weight: 700; color: #4EC9B0; font-family: 'JetBrains Mono', monospace; flex: none; }
+        .url-val { flex: 1; font-size: 12px; color: #c0c8cd; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .url-copy {
+            display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6a7177;
+            background: none; border: none; font-family: 'JetBrains Mono', monospace;
+            cursor: pointer; transition: color 120ms; white-space: nowrap;
         }
-
-        .url-bar-val {
-            flex: 1;
-            font-size: 12px;
-            color: #9a9a9a;
-            font-family: "Consolas", monospace;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .url-bar-copy {
-            font-size: 11px;
-            color: #6a6a6a;
-            background: none;
-            border: none;
-            font-family: inherit;
-            cursor: pointer;
-            padding: 3px 7px;
-            border-radius: 5px;
-            transition: background 120ms, color 120ms;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .url-bar-copy:hover  { background: #1a1a1a; color: #c6c6c6; }
-        .url-bar-copy.copied { color: #34e0a8; }
+        .url-copy:hover { color: #e2e2e2; }
+        .url-copy.copied { color: #4EC9B0; }
 
         /* ── Modal ── */
-        .overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            z-index: 50;
-            animation: overlay-in 120ms ease;
-        }
-
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.62); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50; animation: overlay-in 120ms ease; }
         .overlay.hidden { display: none; }
-
-        .modal {
-            width: 100%;
-            max-width: 480px;
-            background: #111;
-            border: 1px solid #2a2a2a;
-            border-radius: 14px;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
-            animation: modal-in 180ms cubic-bezier(0.16,1,0.3,1);
+        .modal { width: 100%; max-width: 540px; background: #1e2020; border: 1px solid #40484d; animation: modal-in 160ms ease; max-height: 90vh; overflow-y: auto; }
+        .modal-titlebar { display: flex; align-items: center; gap: 9px; padding: 10px 14px; background: #0d0e0f; border-bottom: 1px solid #2c3032; }
+        .modal-tl { width: 11px; height: 11px; border-radius: 50%; }
+        .modal-tl-r { background: #ff5f57; }
+        .modal-tl-y { background: #febc2e; }
+        .modal-tl-g { background: #28c840; }
+        .modal-title { margin-left: 6px; font-size: 12px; color: #c0c8cd; font-family: 'JetBrains Mono', monospace; flex: 1; }
+        .modal-close { width: 26px; height: 22px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #8a9297; cursor: pointer; }
+        .modal-close:hover { color: #e2e2e2; }
+        .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #2c3032; }
+        label { display: block; font-size: 12px; color: #9cdcfe; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+        .label-hint { color: #6A9955; }
+        input[type="text"], input[type="number"], select {
+            width: 100%; height: 40px; padding: 0 12px;
+            background: #121414; border: 1px solid #2c3032; border-radius: 0;
+            color: #e2e2e2; font-size: 14px; font-family: 'JetBrains Mono', monospace;
+            outline: none; transition: border-color 120ms;
         }
-
-        .modal-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 22px;
-            border-bottom: 1px solid #1f1f1f;
-        }
-
-        .modal-head h2 { font-size: 16px; font-weight: 650; }
-
-        .modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 15px; }
-
-        .modal-foot {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 16px 22px;
-            border-top: 1px solid #1f1f1f;
-        }
-
-        label { display: block; font-size: 12px; color: #9a9a9a; margin-bottom: 6px; }
-        .label-hint { color: #5a5a5a; }
-
-        input[type="text"],
-        input[type="number"],
-        select {
-            width: 100%;
-            height: 40px;
-            padding: 0 12px;
-            background: #141414;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            color: #e6e6e6;
-            font-size: 14px;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 120ms, box-shadow 120ms;
-        }
-
-        input:focus, select:focus {
-            border-color: #00d4aa;
-            box-shadow: 0 0 0 3px rgba(0,212,170,0.1);
-        }
-
-        select option { background: #141414; }
-
-        .input-mono { font-family: "Consolas", monospace; color: #c4b5fd; }
-        .input-mono-neutral { font-family: "Consolas", monospace; color: #d6d6d6; }
-
+        input:focus, select:focus { border-color: #9cdcfe; }
+        select option { background: #121414; }
+        .input-slug   { color: #C586C0; }
+        .input-mono   { color: #CE9178; }
+        .input-neutral { color: #d4d4d4; }
+        .input-num    { color: #b5cea8; }
         .row-3 { display: flex; gap: 12px; }
-        .row-3 .w110 { width: 110px; flex-shrink: 0; }
-        .row-3 .flex1 { flex: 1; }
-
-        .preview-panel {
-            background: #0c0c0c;
-            border: 1px solid #1c1c1c;
-            border-radius: 8px;
-            padding: 12px 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
-        }
-
-        .preview-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #5a5a5a; text-transform: uppercase; margin-bottom: 4px; }
-        .preview-val { font-size: 12px; font-family: "Consolas", monospace; word-break: break-all; }
-        .preview-val.relay   { color: #5eead4; }
-
+        .w116 { width: 116px; flex: none; }
+        .flex1 { flex: 1; }
+        .preview-panel { background: #0d0e0f; border: 1px solid #1f2424; padding: 11px 13px; }
+        .preview-comment { font-size: 11px; color: #6A9955; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+        .preview-val { font-size: 13px; color: #4EC9B0; font-family: 'JetBrains Mono', monospace; }
         .btn-ghost {
-            height: 38px;
-            padding: 0 16px;
-            background: transparent;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            color: #b6b6b6;
-            font-size: 13px;
-            font-weight: 550;
-            font-family: inherit;
-            cursor: pointer;
-            transition: background 120ms, color 120ms;
+            height: 38px; padding: 0 16px; background: transparent; border: 1px solid #2c3032;
+            border-radius: 0; color: #c0c8cd; font-size: 13px; font-family: 'JetBrains Mono', monospace;
+            cursor: pointer; transition: all 120ms;
         }
+        .btn-ghost:hover { background: #1f2222; color: #e2e2e2; }
 
-        .btn-ghost:hover { background: #1a1a1a; color: #c6c6c6; }
+        /* ── Status bar ── */
+        .statusbar {
+            height: 24px; background: #9cdcfe; color: #16627f;
+            display: flex; align-items: center; flex: none;
+            font-size: 12px; font-family: 'JetBrains Mono', monospace;
+        }
+        .sb-item { display: flex; align-items: center; gap: 5px; padding: 0 9px; height: 24px; cursor: default; white-space: nowrap; }
+        .sb-item:hover { background: rgba(22,98,127,0.14); }
+        .sb-spacer { flex: 1; }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="titlebar">
-        <div class="tl-group">
-            <span class="tl tl-r"></span>
-            <span class="tl tl-y"></span>
-            <span class="tl tl-g"></span>
+<div class="vsc-body">
+
+    <!-- ===== Activity bar ===== -->
+    <nav class="actbar">
+        <div class="actbar-logo"><span class="ms" style="font-size:26px">terminal</span></div>
+        <div class="actbar-nav">
+            <a href="/" class="actbar-item" title="Feed"><span class="ms" style="font-size:24px">sensors</span></a>
+            <a href="/account/apps" class="actbar-item active" title="Apps"><span class="ms" style="font-size:24px">grid_view</span></a>
+            <a href="/account/clients" class="actbar-item" title="Clients"><span class="ms" style="font-size:24px">dns</span></a>
+            <a href="/account/admin" class="actbar-item" title="Admin" id="admin-link" hidden><span class="ms" style="font-size:23px">shield_person</span></a>
         </div>
-        <span class="titlebar-name">Apps — Callback Relay</span>
-        <div class="avatar-wrap" id="avatar-wrap">
-            <button class="avatar" id="avatar-el">…</button>
-            <div class="user-menu" id="user-menu" hidden>
-                <div class="user-menu-email" id="user-menu-email"></div>
-                <button class="user-menu-signout" id="signout-btn">Sign out</button>
+        <div class="actbar-bottom">
+            <span class="ms" style="font-size:23px;color:#8a9297;cursor:default">settings</span>
+            <div class="avatar-wrap" id="avatar-wrap">
+                <button class="avatar" id="avatar-el">…</button>
+                <div class="user-menu" id="user-menu" hidden>
+                    <div class="user-menu-email" id="user-menu-email"></div>
+                    <button class="user-menu-signout" id="signout-btn">Sign out</button>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="tabbar">
-        <div class="tab-brand">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#007acc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#4ec9b0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="12" r="1.4" fill="#007acc"/>
-            </svg>
-        </div>
-        <a href="/" class="tab-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-            Feed
-        </a>
-        <a href="/account/apps" class="tab-item active">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            Apps
-        </a>
-        <a href="/account/clients" class="tab-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-            Clients
-        </a>
-        <a href="/account/admin" class="tab-item" id="admin-link" hidden>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-            Admin
-        </a>
-    </div>
-</header>
+    </nav>
 
-<div class="content">
-    <div class="page-head">
-        <div>
-            <h1>Apps</h1>
-            <p class="page-sub" id="page-sub">— registered · — active</p>
+    <!-- ===== Explorer sidebar ===== -->
+    <aside class="explorer">
+        <div class="explorer-head">Explorer</div>
+        <div class="explorer-folder">
+            <span class="ms" style="font-size:16px;color:#c0c8cd">expand_more</span>
+            <span style="font-size:12px;font-weight:600;letter-spacing:0.04em;color:#c0c8cd;text-transform:uppercase">callback-relay</span>
         </div>
-        <button class="btn-primary" id="add-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5 L12 19 M5 12 L19 12" stroke="#062d24" stroke-width="2.2" stroke-linecap="round"/></svg>
-            Add app
-        </button>
-    </div>
+        <a href="/" class="explorer-file">
+            <span class="ms ef-icon">bolt</span>
+            <span class="ef-name">feed.live</span>
+        </a>
+        <a href="/account/apps" class="explorer-file ef-active">
+            <span class="ms ef-icon">data_object</span>
+            <span class="ef-name">apps.json</span>
+        </a>
+        <a href="/account/clients" class="explorer-file">
+            <span class="ms ef-icon">data_object</span>
+            <span class="ef-name">clients.json</span>
+        </a>
+        <a href="/account/admin" class="explorer-file" id="admin-sidebar-file" hidden>
+            <span class="ms ef-icon ef-icon-db">database</span>
+            <span class="ef-name">users.db</span>
+        </a>
+    </aside>
 
-    <div class="table-shell">
-        <div class="table-head">
-            <span class="th">Slug</span>
-            <span class="th">Label</span>
-            <span class="th">Client</span>
-            <span class="th">Mode</span>
-            <span class="th">Status</span>
-            <span class="th">Actions</span>
+    <!-- ===== Editor area ===== -->
+    <div class="editor-area">
+
+        <div class="editor-tabs">
+            <div class="editor-tab et-active">
+                <span class="ms" style="font-size:16px;color:#DCDCAA">data_object</span>
+                <span>apps.json</span>
+                <span class="ms" style="font-size:14px;color:#6a7177">close</span>
+            </div>
+            <div class="editor-tab">
+                <span class="ms" style="font-size:16px;color:#DCDCAA">data_object</span>
+                <span>clients.json</span>
+                <span class="ms" style="font-size:14px;color:#6a7177">close</span>
+            </div>
+            <div class="et-spacer"></div>
+            <div class="et-actions">
+                <span class="ms" style="font-size:17px">split_square</span>
+                <span class="ms" style="font-size:17px">more_horiz</span>
+            </div>
         </div>
-        <div class="table-body" id="table-body"></div>
+
+        <div class="breadcrumb-bar">
+            <span class="bc-seg">callback-relay</span>
+            <span class="ms bc-sep">chevron_right</span>
+            <span class="bc-seg bc-active">apps.json</span>
+            <span class="bc-comment" id="page-sub">// — registered · — active</span>
+        </div>
+
+        <div class="editor-content">
+            <div class="page-head">
+                <div>
+                    <div class="page-comment">// registered webhook endpoints</div>
+                    <h1>apps<span>[]</span></h1>
+                </div>
+                <button class="btn-primary" id="add-btn">
+                    <span class="ms" style="font-size:17px">add</span>new app
+                </button>
+            </div>
+
+            <div class="table-shell">
+                <div class="table-head">
+                    <span class="th">#</span>
+                    <span class="th">Slug</span>
+                    <span class="th">Label</span>
+                    <span class="th">Client</span>
+                    <span class="th">Mode</span>
+                    <span class="th">Status</span>
+                    <span class="th">Actions</span>
+                </div>
+                <div class="table-body" id="table-body"></div>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- Modal -->
 <div class="overlay hidden" id="overlay">
     <div class="modal" id="modal">
-        <div class="modal-head">
-            <h2 id="modal-title">Add app</h2>
-            <button class="icon-btn" id="modal-close-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </button>
+        <div class="modal-titlebar">
+            <span class="modal-tl modal-tl-r"></span>
+            <span class="modal-tl modal-tl-y"></span>
+            <span class="modal-tl modal-tl-g"></span>
+            <span class="modal-title" id="modal-title">new-app.json</span>
+            <button class="modal-close" id="modal-close-btn"><span class="ms" style="font-size:16px">close</span></button>
         </div>
         <div class="modal-body">
             <div>
-                <label>Label</label>
-                <input type="text" id="f-label" placeholder="Stripe Production">
+                <label>label</label>
+                <input type="text" id="f-label" placeholder="Stripe Production" class="input-mono">
             </div>
             <div class="row-3">
-                <div class="w110">
-                    <label>Scheme</label>
-                    <select id="f-scheme" class="input-mono-neutral">
+                <div class="w116">
+                    <label>scheme</label>
+                    <select id="f-scheme" class="input-neutral">
                         <option value="http">http</option>
                         <option value="https">https</option>
                     </select>
                 </div>
-                <div class="w110">
-                    <label>Port</label>
-                    <input type="text" id="f-port" placeholder="4000" class="input-mono-neutral" inputmode="numeric">
+                <div class="w116">
+                    <label>port</label>
+                    <input type="text" id="f-port" placeholder="4000" class="input-num" inputmode="numeric">
                 </div>
                 <div class="flex1">
-                    <label>Base path</label>
-                    <input type="text" id="f-basepath" placeholder="/webhooks" class="input-mono-neutral">
+                    <label>basePath</label>
+                    <input type="text" id="f-basepath" placeholder="/webhooks" class="input-mono">
                 </div>
             </div>
             <div>
-                <label>Delivery mode</label>
-                <select id="f-mode">
-                    <option value="0">Web only — dashboard display only</option>
-                    <option value="2">Both — dashboard + forward to agent</option>
-                    <option value="1">Local only — forward to agent only</option>
+                <label>deliveryMode</label>
+                <select id="f-mode" class="input-neutral">
+                    <option value="0">web — dashboard display only</option>
+                    <option value="2">both — display and forward</option>
+                    <option value="1">relay — forward to client only</option>
                 </select>
             </div>
             <div>
-                <label>Client <span class="label-hint">(optional — which machine forwards this app)</span></label>
-                <select id="f-client">
-                    <option value="">None</option>
+                <label>client <span class="label-hint">// optional</span></label>
+                <select id="f-client" class="input-neutral">
+                    <option value="">none</option>
                 </select>
             </div>
             <div class="preview-panel">
-                <div>
-                    <div class="preview-label">Relays to</div>
-                    <div class="preview-val relay" id="preview-relay"></div>
-                </div>
+                <div class="preview-comment">// relays to</div>
+                <div class="preview-val" id="preview-relay"></div>
             </div>
         </div>
         <div class="modal-foot">
-            <button class="btn-ghost" id="cancel-btn">Cancel</button>
-            <button class="btn-primary" id="save-btn">Create app</button>
+            <button class="btn-ghost" id="cancel-btn">cancel</button>
+            <button class="btn-primary" id="save-btn">create app</button>
         </div>
     </div>
+</div>
+
+<!-- ===== Status bar ===== -->
+<div class="statusbar">
+    <div class="sb-item"><span class="ms" style="font-size:14px">account_tree</span><span style="font-size:11px">main</span></div>
+    <div class="sb-item"><span class="ms" style="font-size:14px">sync</span></div>
+    <div class="sb-spacer"></div>
+    <div class="sb-item"><span style="font-size:11px" id="sb-app-count">— apps</span></div>
+    <div class="sb-item"><span style="font-size:11px">JSON</span></div>
+    <div class="sb-item"><span style="font-size:11px">ASP.NET 9</span></div>
 </div>
 
 <script>
 "use strict";
 
-let apps      = [];
-let clients   = [];
+let apps    = [];
+let clients = [];
 let editingId = null;
 
 const COPY_SVG  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M5 15 L4 15 A1 1 0 0 1 3 14 L3 4 A1 1 0 0 1 4 3 L14 3 A1 1 0 0 1 15 4 L15 5" stroke="currentColor" stroke-width="1.7"/></svg>`;
-const CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 7" stroke="#34e0a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 7" stroke="#4EC9B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const EDIT_SVG  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 5 L19 10 M4 20 L4.5 16 L15 5.5 A1.5 1.5 0 0 1 17 5.5 L18.5 7 A1.5 1.5 0 0 1 18.5 9 L8 19.5 L4 20Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 const DEL_SVG   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 7 L19 7 M10 4 L14 4 M6 7 L7 20 L17 20 L18 7 M10 11 L10 16 M14 11 L14 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
-
 function generateId(length = 6) {
     return Array.from({ length }, () => ID_CHARS[Math.floor(Math.random() * ID_CHARS.length)]).join("");
 }
+function webhookUrl(slug) { return `${location.origin}/?slug=${encodeURIComponent(slug)}`; }
+function esc(s) { return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-function webhookUrl(slug) {
-    return `${location.origin}/?slug=${encodeURIComponent(slug)}`;
-}
-
-function esc(s) {
-    return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-async function copyText(text, btn, ghostBtn) {
+async function copyText(text, iconBtn, textBtn) {
     await navigator.clipboard.writeText(text);
-    if (btn) {
-        btn.innerHTML = CHECK_SVG;
-        btn.classList.add("copied");
-        setTimeout(() => { btn.innerHTML = COPY_SVG; btn.classList.remove("copied"); }, 1800);
+    if (iconBtn) {
+        iconBtn.innerHTML = CHECK_SVG;
+        iconBtn.classList.add("copied");
+        setTimeout(() => { iconBtn.innerHTML = COPY_SVG; iconBtn.classList.remove("copied"); }, 1800);
     }
-    if (ghostBtn) {
-        ghostBtn.textContent = "Copied";
-        ghostBtn.classList.add("copied");
-        setTimeout(() => { ghostBtn.textContent = "Copy"; ghostBtn.classList.remove("copied"); }, 1800);
+    if (textBtn) {
+        textBtn.querySelector(".ms").textContent = "check";
+        textBtn.querySelector(".url-copy-label").textContent = "copied";
+        textBtn.classList.add("copied");
+        setTimeout(() => {
+            textBtn.querySelector(".ms").textContent = "content_copy";
+            textBtn.querySelector(".url-copy-label").textContent = "copy";
+            textBtn.classList.remove("copied");
+        }, 1800);
     }
 }
 
-// ── Auth + load ───────────────────────────────────────────────────────────────
+// ── Auth + load ──────────────────────────────────────────────────
 (async () => {
     const meRes = await fetch("/auth/me");
-    if (!meRes.ok) { window.location.replace("/account/login"); return; }
+    if (!meRes.ok) { window.location.replace("/landing"); return; }
     const me = await meRes.json();
     document.getElementById("avatar-el").textContent = me.initials;
     document.getElementById("user-menu-email").textContent = me.email;
-    if (me.isAdmin) document.getElementById("admin-link").hidden = false;
+    if (me.isAdmin) {
+        document.getElementById("admin-link").hidden = false;
+        const sf = document.getElementById("admin-sidebar-file");
+        if (sf) sf.hidden = false;
+    }
     const [appsRes, clientsRes] = await Promise.all([fetch("/api/apps"), fetch("/api/clients")]);
     if (appsRes.ok)    apps    = await appsRes.json();
     if (clientsRes.ok) clients = await clientsRes.json();
@@ -556,7 +474,7 @@ document.getElementById("avatar-el").addEventListener("click", e => {
 document.addEventListener("click", () => { document.getElementById("user-menu").hidden = true; });
 document.getElementById("signout-btn").addEventListener("click", async () => {
     await fetch("/auth/logout", { method: "POST" });
-    location.replace("/account/login");
+    location.replace("/landing");
 });
 
 function populateClientSelect() {
@@ -564,55 +482,58 @@ function populateClientSelect() {
     while (sel.options.length > 1) sel.remove(1);
     clients.forEach(c => {
         const opt = document.createElement("option");
-        opt.value       = c.id;
+        opt.value = c.id;
         opt.textContent = c.label + (c.isOnline ? " ●" : " ○");
         sel.appendChild(opt);
     });
 }
 
-// ── Render table ──────────────────────────────────────────────────────────────
+// ── Render table ─────────────────────────────────────────────────
 function render() {
     const body = document.getElementById("table-body");
     body.innerHTML = "";
-
     const active = apps.filter(a => a.isActive).length;
-    document.getElementById("page-sub").textContent =
-        `${apps.length} registered · ${active} active`;
+    document.getElementById("page-sub").textContent = `// ${apps.length} registered · ${active} active`;
+    const sbCount = document.getElementById("sb-app-count");
+    if (sbCount) sbCount.textContent = `${apps.length} apps`;
 
     if (apps.length === 0) {
-        body.innerHTML = `<div style="padding:32px 18px;text-align:center;color:#4a4a4a;">No apps yet. Add one to get started.</div>`;
+        body.innerHTML = `<div style="padding:32px 14px;text-align:center;color:#6a7177;font-family:'JetBrains Mono',monospace;font-size:13px;">// no apps yet — add one to get started</div>`;
         return;
     }
 
-    apps.forEach(a => {
+    apps.forEach((a, i) => {
         const webUrl = webhookUrl(a.slug);
+        const statusBorder = a.isActive ? "rgba(78,201,176,0.4)"   : "rgba(106,113,119,0.5)";
+        const statusColor  = a.isActive ? "#4EC9B0"                : "#8a9297";
+        const dotColor     = a.isActive ? "#4EC9B0"                : "#5a5a5a";
+        const statusLabel  = a.isActive ? "active"                 : "inactive";
+        const client       = a.clientId ? clients.find(c => c.id === a.clientId) : null;
+        const lineNo       = String(i + 1).padStart(2, "0");
 
-        const statusBg    = a.isActive ? "rgba(0,214,143,0.12)" : "#1a1a1a";
-        const statusColor = a.isActive ? "#34e0a8" : "#7a7a7a";
-        const dotColor    = a.isActive ? "#00d68f" : "#4a4a4a";
-        const statusLabel = a.isActive ? "Active" : "Inactive";
-
-        const client    = a.clientId ? clients.find(c => c.id === a.clientId) : null;
         const clientHtml = client
-            ? `<span class="cell-client ${client.isOnline ? "online" : ""}">
+            ? `<span class="cell-client">
                   <span class="client-dot ${client.isOnline ? "online" : "offline"}"></span>
                   ${esc(client.label)}
                </span>`
-            : `<span class="cell-client-none">No client</span>`;
+            : `<span class="cell-client no-client">none</span>`;
+
+        const modeMap = { 0: "web", 1: "relay", 2: "both" };
 
         const row = document.createElement("div");
         row.className = "row-wrap";
         row.innerHTML = `
             <div class="row-grid">
+                <span class="cell-linenum">${esc(lineNo)}</span>
                 <span class="cell-slug">${esc(a.slug)}</span>
-                <span class="cell-label">${esc(a.label)}</span>
+                <span class="cell-label">"${esc(a.label)}"</span>
                 <div>${clientHtml}</div>
                 <select class="mode-select">
-                    <option value="0" ${a.mode === 0 ? "selected" : ""}>Web only</option>
-                    <option value="2" ${a.mode === 2 ? "selected" : ""}>Both</option>
-                    <option value="1" ${a.mode === 1 ? "selected" : ""}>Local only</option>
+                    <option value="0" ${a.mode === 0 ? "selected" : ""}>web</option>
+                    <option value="2" ${a.mode === 2 ? "selected" : ""}>both</option>
+                    <option value="1" ${a.mode === 1 ? "selected" : ""}>relay</option>
                 </select>
-                <span class="badge-status" style="background:${statusBg};color:${statusColor};">
+                <span class="badge-status" style="border-color:${statusBorder};color:${statusColor};">
                     <span class="status-dot" style="background:${dotColor};"></span>
                     ${statusLabel}
                 </span>
@@ -623,42 +544,39 @@ function render() {
                 </div>
             </div>
             <div class="url-bar">
-                <span class="url-bar-label">URL</span>
-                <span class="url-bar-val">${esc(webUrl)}</span>
-                <button class="url-bar-copy">Copy</button>
+                <span class="url-method">GET</span>
+                <span class="url-val">${esc(webUrl)}</span>
+                <button class="url-copy">
+                    <span class="ms" style="font-size:14px">content_copy</span>
+                    <span class="url-copy-label">copy</span>
+                </button>
             </div>`;
 
-        const copyBtn  = row.querySelector(".copy-url-btn");
-        const ghostBtn = row.querySelector(".url-bar-copy");
-        copyBtn.addEventListener("click",  () => copyText(webUrl, copyBtn, ghostBtn));
-        ghostBtn.addEventListener("click", () => copyText(webUrl, copyBtn, ghostBtn));
-
+        const iconBtn = row.querySelector(".copy-url-btn");
+        const textBtn = row.querySelector(".url-copy");
+        iconBtn.addEventListener("click", () => copyText(webUrl, iconBtn, textBtn));
+        textBtn.addEventListener("click", () => copyText(webUrl, iconBtn, textBtn));
         row.querySelector(".edit-btn").addEventListener("click", () => openModal(a));
         row.querySelector(".del").addEventListener("click", () => deleteApp(a.id));
         row.querySelector(".mode-select").addEventListener("change", async e => {
             const mode = parseInt(e.target.value);
             await fetch(`/api/apps/${a.id}/mode`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                method: "PATCH", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ mode }),
             });
             const found = apps.find(x => x.id === a.id);
             if (found) found.mode = mode;
         });
-
         body.appendChild(row);
     });
 }
 
 async function deleteApp(id) {
     const res = await fetch(`/api/apps/${id}`, { method: "DELETE" });
-    if (res.ok || res.status === 204) {
-        apps = apps.filter(a => a.id !== id);
-        render();
-    }
+    if (res.ok || res.status === 204) { apps = apps.filter(a => a.id !== id); render(); }
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
+// ── Modal ─────────────────────────────────────────────────────────
 const overlay   = document.getElementById("overlay");
 const fLabel    = document.getElementById("f-label");
 const fScheme   = document.getElementById("f-scheme");
@@ -669,17 +587,14 @@ const fClient   = document.getElementById("f-client");
 
 function openModal(app = null) {
     editingId = app ? app.id : null;
-
-    document.getElementById("modal-title").textContent = app ? "Edit app" : "Add app";
-    document.getElementById("save-btn").textContent    = app ? "Save changes" : "Create app";
-
+    document.getElementById("modal-title").textContent = app ? "edit-app.json" : "new-app.json";
+    document.getElementById("save-btn").textContent    = app ? "save changes"  : "create app";
     fLabel.value    = app ? app.label          : "";
     fScheme.value   = app ? app.scheme         : "http";
     fPort.value     = app ? String(app.port)   : "";
     fBasePath.value = app ? (app.basePath || "") : "";
     fMode.value     = app ? String(app.mode)   : "0";
     fClient.value   = app?.clientId ?? "";
-
     updatePreview();
     overlay.classList.remove("hidden");
     fLabel.focus();
@@ -694,9 +609,9 @@ function updatePreview() {
         `${fScheme.value}://localhost:${port}${base === "/" ? "/" : base}`;
 }
 
-fLabel.addEventListener("input",    updatePreview);
-fScheme.addEventListener("change",  updatePreview);
-fPort.addEventListener("input",    () => { fPort.value = fPort.value.replace(/[^0-9]/g, ""); updatePreview(); });
+fLabel.addEventListener("input", updatePreview);
+fScheme.addEventListener("change", updatePreview);
+fPort.addEventListener("input", () => { fPort.value = fPort.value.replace(/[^0-9]/g,""); updatePreview(); });
 fBasePath.addEventListener("input", updatePreview);
 
 document.getElementById("add-btn").addEventListener("click", () => openModal());
@@ -707,23 +622,18 @@ overlay.addEventListener("click", e => { if (e.target === overlay) closeModal();
 document.getElementById("save-btn").addEventListener("click", async () => {
     const label = fLabel.value.trim();
     if (!label) { fLabel.focus(); return; }
-
     const saveBtn = document.getElementById("save-btn");
     saveBtn.disabled = true;
     const origText = saveBtn.textContent;
-    saveBtn.textContent = editingId ? "Saving…" : "Creating…";
-
+    saveBtn.textContent = editingId ? "saving…" : "creating…";
     const clientId = fClient.value || null;
-
     let res;
     if (editingId) {
         res = await fetch(`/api/apps/${editingId}`, {
-            method:  "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                label,
-                scheme:   fScheme.value,
-                port:     parseInt(fPort.value.trim()) || 4000,
+                label, scheme: fScheme.value,
+                port: parseInt(fPort.value.trim()) || 4000,
                 basePath: fBasePath.value.trim() || "/",
                 clientId: clientId ?? "00000000-0000-0000-0000-000000000000",
             }),
@@ -731,25 +641,19 @@ document.getElementById("save-btn").addEventListener("click", async () => {
     } else {
         for (let attempt = 0; attempt < 5; attempt++) {
             res = await fetch("/api/apps", {
-                method:  "POST",
-                headers: { "Content-Type": "application/json" },
+                method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    slug:     generateId(),
-                    label,
-                    scheme:   fScheme.value,
-                    port:     parseInt(fPort.value.trim()) || 4000,
+                    slug: generateId(), label, scheme: fScheme.value,
+                    port: parseInt(fPort.value.trim()) || 4000,
                     basePath: fBasePath.value.trim() || "/",
-                    mode:     parseInt(fMode.value),
-                    clientId,
+                    mode: parseInt(fMode.value), clientId,
                 }),
             });
             if (res.status !== 409) break;
         }
     }
-
     saveBtn.disabled = false;
     saveBtn.textContent = origText;
-
     if (res.ok || res.status === 201) {
         const data = await res.json();
         if (editingId) {
@@ -765,20 +669,6 @@ document.getElementById("save-btn").addEventListener("click", async () => {
         alert(data.error ?? "Failed to save.");
     }
 });
-
-document.getElementById("footer-year").textContent = new Date().getFullYear();
 </script>
-
-<footer>
-    <div class="footer-brand">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="12" cy="12" r="1.4" fill="rgba(255,255,255,0.9)"/>
-        </svg>
-        <span>Callback Relay</span>
-    </div>
-    <span class="footer-copy">&copy; <span id="footer-year"></span> Erick Muthomi</span>
-</footer>
 </body>
 </html>

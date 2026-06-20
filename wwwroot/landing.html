@@ -4,767 +4,341 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Callback Relay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            --bg:          #1e1e1e;
-            --sidebar:     #252526;
-            --actbar:      #333333;
-            --tabbar:      #252526;
-            --tab:         #2d2d30;
-            --tab-active:  #1e1e1e;
-            --titlebar:    #3c3c3c;
-            --status:      #007acc;
-            --border:      #3c3c3c;
-            --text:        #cccccc;
-            --muted:       #858585;
-            --blue:        #569cd6;
-            --teal:        #4ec9b0;
-            --green:       #6a9955;
-            --orange:      #ce9178;
-            --yellow:      #dcdcaa;
-            --purple:      #c586c0;
-            --red:         #f44747;
-            --number:      #b5cea8;
-            --accent:      #007acc;
-        }
-
         html, body { height: 100%; overflow: hidden; }
-
         body {
-            font-family: "Segoe UI", system-ui, sans-serif;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #121414; color: #e2e2e2;
+            display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased; font-size: 13px;
         }
-
-        /* ── VS Code Window ── */
-        .vsc-window {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg);
-            overflow: hidden;
+        ::selection { background: rgba(156,220,254,0.25); }
+        ::-webkit-scrollbar { width: 11px; height: 11px; }
+        ::-webkit-scrollbar-track { background: #121414; }
+        ::-webkit-scrollbar-thumb { background: #40484d; }
+        ::-webkit-scrollbar-thumb:hover { background: #8a9297; }
+        .ms {
+            font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal;
+            line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
+            word-wrap: normal; direction: ltr; -webkit-font-smoothing: antialiased;
         }
 
         /* ── Title bar ── */
         .titlebar {
-            height: 30px;
-            background: var(--titlebar);
-            display: flex;
-            align-items: center;
-            padding: 0 12px;
-            gap: 0;
-            flex-shrink: 0;
-            user-select: none;
+            display: flex; align-items: center; height: 30px;
+            background: #3a3a3c; border-bottom: 1px solid #2c3032; flex: none;
+        }
+        .titlebar-center { flex: 1; text-align: center; font-size: 12px; color: #c0c8cd; }
+
+        /* ── Layout ── */
+        .vsc-body { display: flex; flex: 1; min-height: 0; }
+
+        /* ── Activity bar (disabled ghost) ── */
+        .actbar-ghost {
+            width: 56px; flex: none; background: #0d0e0f;
+            border-right: 1px solid #2c3032;
+            display: flex; flex-direction: column; align-items: center; padding: 14px 0;
+            opacity: 0.38; pointer-events: none; user-select: none;
+        }
+        .actbar-ghost .ms { color: #8a9297; }
+
+        /* ── Explorer (disabled ghost) ── */
+        .explorer-ghost {
+            width: 250px; flex: none; background: #1a1c1c;
+            border-right: 1px solid #2c3032;
+            display: flex; flex-direction: column; overflow: hidden;
+            opacity: 0.4; pointer-events: none; user-select: none; white-space: nowrap;
         }
 
-        .traffic-lights {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            margin-right: 16px;
-        }
-        .tl {
-            width: 12px; height: 12px; border-radius: 50%;
-            cursor: pointer;
-        }
-        .tl-r { background: #ff5f57; }
-        .tl-y { background: #febc2e; }
-        .tl-g { background: #28c840; }
+        /* ── Main content area ── */
+        .main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-        .titlebar-menus {
-            display: flex;
-            gap: 2px;
-        }
-        .titlebar-menu {
-            padding: 3px 8px;
-            font-size: 12px;
-            color: #cccccc;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .titlebar-menu:hover { background: rgba(255,255,255,0.1); }
-
-        .titlebar-title {
-            flex: 1;
-            text-align: center;
-            font-size: 12px;
-            color: #cccccc;
-        }
-
-        .titlebar-right { width: 120px; }
-
-        /* ── Main layout ── */
-        .vsc-body {
-            display: flex;
-            flex: 1;
-            min-height: 0;
-        }
-
-        /* ── Activity bar ── */
-        .actbar {
-            width: 48px;
-            background: var(--actbar);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 8px 0;
-            gap: 4px;
-            flex-shrink: 0;
-            border-right: 1px solid rgba(0,0,0,0.3);
-        }
-
-        .act-icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            cursor: pointer;
-            color: #858585;
-            position: relative;
-            transition: color 120ms;
-        }
-        .act-icon:hover { color: #cccccc; }
-        .act-icon.active {
-            color: #ffffff;
-        }
-        .act-icon.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 6px;
-            bottom: 6px;
-            width: 2px;
-            background: #007acc;
-            border-radius: 0 2px 2px 0;
-        }
-        .act-icon svg { width: 24px; height: 24px; }
-
-        .act-spacer { flex: 1; }
-
-        /* ── Sidebar ── */
-        .sidebar {
-            width: 240px;
-            background: var(--sidebar);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            border-right: 1px solid var(--border);
-            overflow: hidden;
-        }
-
-        .sidebar-title {
-            padding: 9px 14px 7px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            color: #bbbbbb;
-            text-transform: uppercase;
-            flex-shrink: 0;
-        }
-
-        .sidebar-section {
-            flex-shrink: 0;
-        }
-
-        .sidebar-section-head {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 8px 5px 14px;
-            font-size: 11px;
-            font-weight: 700;
-            color: #cccccc;
-            letter-spacing: 0.04em;
-            cursor: pointer;
-            user-select: none;
-        }
-        .sidebar-section-head svg { opacity: 0.7; }
-
-        .tree {
-            padding: 2px 0;
-        }
-
-        .tree-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 3px 8px 3px 0;
-            font-size: 13px;
-            color: #cccccc;
-            cursor: pointer;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        .tree-item:hover { background: #2a2d2e; }
-        .tree-item.active { background: #094771; color: #ffffff; }
-
-        .tree-indent { width: 16px; flex-shrink: 0; }
-        .tree-caret { width: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .tree-caret svg { width: 10px; height: 10px; opacity: 0.7; }
-        .tree-icon { flex-shrink: 0; font-size: 14px; }
-        .tree-label { overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
-
-        /* ── Editor area ── */
-        .editor-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            background: var(--bg);
-        }
-
-        /* ── Tab bar ── */
-        .tabbar {
-            display: flex;
-            align-items: stretch;
-            height: 35px;
-            background: var(--tabbar);
-            flex-shrink: 0;
-            overflow-x: auto;
-            border-bottom: 1px solid #1e1e1e;
-        }
-        .tabbar::-webkit-scrollbar { height: 3px; }
-
-        .tab {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 14px;
-            background: var(--tab);
-            color: #969696;
-            font-size: 12.5px;
-            white-space: nowrap;
-            cursor: pointer;
-            border-top: 1px solid transparent;
-            border-right: 1px solid var(--tabbar);
-            transition: color 100ms;
-            text-decoration: none;
-            user-select: none;
-            flex-shrink: 0;
-        }
-        .tab:hover { color: #cccccc; }
-        .tab.active {
-            background: var(--tab-active);
-            color: #ffffff;
-            border-top-color: #007acc;
-        }
-        .tab .tab-x {
-            width: 16px; height: 16px;
-            border-radius: 3px;
-            display: flex; align-items: center; justify-content: center;
-            color: #969696;
-            font-size: 11px;
-            opacity: 0;
-        }
-        .tab:hover .tab-x, .tab.active .tab-x { opacity: 1; }
-        .tab .tab-x:hover { background: rgba(255,255,255,0.1); color: #cccccc; }
+        /* ── Editor tabs ── */
+        .editor-tabs { display: flex; align-items: stretch; height: 38px; background: #1e2020; border-bottom: 1px solid #2c3032; flex: none; }
+        .tab-welcome { display: flex; align-items: center; gap: 9px; padding: 0 14px; background: #121414; border-top: 2px solid #8fcff0; border-right: 1px solid #2c3032; }
+        .tab-welcome svg { width: 15px; height: 15px; flex: none; }
+        .tab-welcome-label { font-size: 13px; color: #e2e2e2; }
+        .tab-getstarted { display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #1a1c1c; border-right: 1px solid #2c3032; text-decoration: none; transition: background 100ms; }
+        .tab-getstarted:hover { background: #1f2222; }
+        .tab-getstarted span { font-size: 13px; color: #8a9297; }
+        .et-close { font-size: 15px; color: #8a9297; margin-left: 2px; }
 
         /* ── Editor content ── */
-        .editor {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 60px 40px 60px;
+        .editor-content { flex: 1; overflow-y: auto; overflow-x: hidden; background: #121414; }
+        .content-wrap { max-width: 1100px; padding: 44px 48px 70px; }
+
+        /* ── Hero ── */
+        .hero { display: flex; align-items: center; gap: 22px; margin-bottom: 44px; }
+        .hero-icon {
+            width: 78px; height: 78px; flex: none; background: #16323a;
+            border: 1px solid #21505a; display: flex; align-items: center; justify-content: center;
+        }
+        .hero-title { font-size: 38px; font-weight: 500; letter-spacing: -0.02em; color: #f0f3f5; margin-bottom: 6px; }
+        .hero-sub { font-size: 16px; color: #6A9955; font-family: 'JetBrains Mono', monospace; }
+
+        /* ── Sections ── */
+        .section-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+        .section-label { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #8a9297; white-space: nowrap; }
+        .section-line { flex: 1; height: 1px; background: #2c3032; }
+        .section-gap { margin-top: 38px; }
+
+        /* ── Start list ── */
+        .start-row {
+            display: flex; align-items: flex-start; gap: 16px;
+            padding: 14px 8px; text-decoration: none;
+            border-left: 2px solid transparent; transition: background 100ms;
+        }
+        .start-row:hover { background: #16191a; }
+        .start-row:hover .start-row-title { color: #fff; }
+        .start-row-title { font-size: 15px; color: #e2e2e2; margin-bottom: 2px; }
+        .start-row-sub { font-size: 13px; color: #8a9297; }
+
+        /* ── Code panel ── */
+        .code-panel {
+            background: #1a1c1c; border: 1px solid #2c3032; padding: 16px 18px;
+            font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.85;
+            overflow-x: auto; white-space: nowrap;
+        }
+        .c-comment { color: #6A9955; }
+        .c-method  { color: #4EC9B0; font-weight: 600; }
+        .c-url     { color: #CE9178; }
+        .c-arrow   { color: #C586C0; }
+        .c-up      { color: #4EC9B0; }
+        .c-plain   { color: #c0c8cd; }
+        .c-fn      { color: #DCDCAA; }
+        .c-flag    { color: #9cdcfe; }
+        .c-str     { color: #CE9178; }
+
+        /* ── Feature grid ── */
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .feat-card { background: #1a1c1c; border: 1px solid #2c3032; padding: 16px 18px; transition: border-color 120ms; }
+        .feat-card:hover { border-color: #4a5258; }
+        .feat-title { font-size: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 600; margin-bottom: 8px; color: #4EC9B0; }
+        .feat-desc { font-size: 13px; color: #8a9297; line-height: 1.55; }
+
+        /* ── Footer actions ── */
+        .foot-actions { display: flex; align-items: center; gap: 12px; margin-top: 40px; flex-wrap: wrap; }
+        .btn-get-started {
+            display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px;
+            background: #1668c4; color: #fff; text-decoration: none;
+            font-size: 14px; font-weight: 600; border: none; transition: background 120ms;
+        }
+        .btn-get-started:hover { background: #2f7fd6; }
+        .btn-sign-in {
+            display: flex; align-items: center; height: 42px; padding: 0 18px;
+            background: transparent; border: 1px solid #2c3032; color: #c0c8cd;
+            text-decoration: none; font-size: 14px; transition: all 120ms;
+        }
+        .btn-sign-in:hover { background: #1f2222; color: #e2e2e2; }
+        .foot-spacer { flex: 1; }
+        .home-badge {
+            display: flex; align-items: center; gap: 7px; padding: 6px 12px;
+            border: 1px solid rgba(220,220,170,0.35); color: #DCDCAA;
+            font-family: 'JetBrains Mono', monospace; font-size: 12px;
         }
 
-        .editor::-webkit-scrollbar { width: 10px; }
-        .editor::-webkit-scrollbar-track { background: var(--bg); }
-        .editor::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
-
-        .welcome-wrap {
-            width: 100%;
-            max-width: 680px;
-        }
-
-        .welcome-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 40px;
-        }
-
-        .welcome-logo {
-            width: 52px;
-            height: 52px;
-            background: rgba(0,122,204,0.15);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .welcome-title { font-size: 28px; font-weight: 300; color: #cccccc; letter-spacing: -0.02em; }
-        .welcome-sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: "Consolas", monospace; }
-        .comment { color: var(--green); }
-
-        .section { margin-bottom: 36px; }
-
-        .section-title {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .start-list { display: flex; flex-direction: column; gap: 4px; }
-
-        .start-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            color: #cccccc;
-            text-decoration: none;
-            transition: background 100ms;
-        }
-        .start-item:hover { background: #2a2d2e; }
-        .start-item svg { flex-shrink: 0; color: var(--accent); }
-        .start-item-main { font-size: 13px; color: #cccccc; }
-        .start-item-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
-
-        .divider { height: 1px; background: var(--border); margin: 28px 0; }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .feature-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 14px 16px;
-        }
-        .feature-card-title {
-            font-size: 12.5px;
-            color: var(--teal);
-            font-family: "Consolas", monospace;
-            margin-bottom: 6px;
-        }
-        .feature-card-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
-
-        .code-block {
-            background: #252526;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 14px 16px;
-            font-family: "Consolas", monospace;
-            font-size: 12.5px;
-            color: #cccccc;
-            overflow-x: auto;
-            line-height: 1.7;
-        }
-        .code-block .cm { color: var(--green); }
-        .code-block .kw { color: var(--blue); }
-        .code-block .st { color: var(--orange); }
-        .code-block .fn { color: var(--yellow); }
-        .code-block .ty { color: var(--teal); }
-        .code-block .num { color: var(--number); }
-
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            height: 32px;
-            padding: 0 14px;
-            background: #0e639c;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            font-size: 13px;
-            font-family: inherit;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background 120ms;
-        }
-        .btn-primary:hover { background: #1177bb; }
-
-        .btn-ghost {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            height: 32px;
-            padding: 0 14px;
-            background: transparent;
-            color: #cccccc;
-            border: 1px solid #3c3c3c;
-            border-radius: 4px;
-            font-size: 13px;
-            font-family: inherit;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background 120ms, border-color 120ms;
-        }
-        .btn-ghost:hover { background: rgba(255,255,255,0.06); border-color: #555; }
-
-        .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-
-        .badge {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 2px 8px; border-radius: 11px;
-            font-size: 11px; font-family: "Consolas", monospace;
-        }
-        .badge-home-lab { background: rgba(254,188,46,0.12); color: #febc2e; border: 1px solid rgba(254,188,46,0.25); }
-
-        /* ── Status bar ── */
+        /* ── Status bar (blue for landing) ── */
         .statusbar {
-            height: 22px;
-            background: var(--status);
-            display: flex;
-            align-items: center;
-            gap: 0;
-            flex-shrink: 0;
-            overflow: hidden;
+            height: 24px; background: #1668c4; color: #ffffff;
+            display: flex; align-items: center; flex: none;
+            font-size: 12px; font-family: 'JetBrains Mono', monospace;
         }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 0 10px;
-            height: 100%;
-            font-size: 11.5px;
-            color: rgba(255,255,255,0.9);
-            white-space: nowrap;
-            cursor: pointer;
-        }
-        .status-item:hover { background: rgba(255,255,255,0.12); }
-        .status-item svg { width: 13px; height: 13px; }
-
-        .status-spacer { flex: 1; }
-
-        /* ── Responsive ── */
-        @media (max-width: 700px) {
-            .sidebar { display: none; }
-            .feature-grid { grid-template-columns: 1fr; }
-            .titlebar-menus { display: none; }
-        }
+        .sb-spacer { flex: 1; }
+        .sb-item { display: flex; align-items: center; gap: 5px; padding: 0 9px; height: 24px; }
     </style>
 </head>
 <body>
 
-<div class="vsc-window">
+<!-- ===== Title bar ===== -->
+<div class="titlebar">
+    <div class="titlebar-center">Welcome — Callback Relay</div>
+</div>
 
-    <!-- Title bar -->
-    <div class="titlebar">
-        <div class="traffic-lights">
-            <div class="tl tl-r"></div>
-            <div class="tl tl-y"></div>
-            <div class="tl tl-g"></div>
+<div class="vsc-body">
+
+    <!-- ===== Activity bar (ghosted / disabled) ===== -->
+    <nav class="actbar-ghost">
+        <span class="ms" style="font-size:26px;color:#9cdcfe;margin-bottom:22px">terminal</span>
+        <span class="ms" style="font-size:24px;margin-bottom:18px">sensors</span>
+        <span class="ms" style="font-size:24px;margin-bottom:18px">grid_view</span>
+        <span class="ms" style="font-size:24px;margin-bottom:18px">dns</span>
+        <span class="ms" style="font-size:23px"></span>
+        <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:16px">
+            <span class="ms" style="font-size:23px">settings</span>
+            <span class="ms" style="font-size:24px">account_circle</span>
         </div>
-        <div class="titlebar-menus">
-            <div class="titlebar-menu">File</div>
-            <div class="titlebar-menu">Edit</div>
-            <div class="titlebar-menu">View</div>
-            <div class="titlebar-menu">Help</div>
+    </nav>
+
+    <!-- ===== Explorer sidebar (ghosted / disabled) ===== -->
+    <aside class="explorer-ghost">
+        <div style="padding:11px 16px 6px;font-size:11px;letter-spacing:0.08em;color:#8a9297;text-transform:uppercase">Explorer</div>
+        <div style="display:flex;align-items:center;gap:4px;padding:4px 12px">
+            <span class="ms" style="font-size:16px;color:#6a7177">chevron_right</span>
+            <span style="font-size:12px;font-weight:600;letter-spacing:0.04em;color:#8a9297;text-transform:uppercase">callback-relay</span>
         </div>
-        <div class="titlebar-title">Welcome — Callback Relay</div>
-        <div class="titlebar-right"></div>
-    </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 12px 5px 30px">
+            <span class="ms" style="font-size:16px;color:#6a7177">bolt</span>
+            <span style="font-size:13px;color:#6a7177;font-family:'JetBrains Mono',monospace">feed.live</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 12px 5px 30px">
+            <span class="ms" style="font-size:16px;color:#6a7177">data_object</span>
+            <span style="font-size:13px;color:#6a7177;font-family:'JetBrains Mono',monospace">apps.json</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 12px 5px 30px">
+            <span class="ms" style="font-size:16px;color:#6a7177">data_object</span>
+            <span style="font-size:13px;color:#6a7177;font-family:'JetBrains Mono',monospace">clients.json</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 12px 5px 30px">
+            <span class="ms" style="font-size:16px;color:#6a7177">database</span>
+            <span style="font-size:13px;color:#6a7177;font-family:'JetBrains Mono',monospace">users.db</span>
+        </div>
+        <div style="margin-top:14px;padding:10px 16px;border-top:1px solid #2c3032;display:flex;align-items:center;gap:7px">
+            <span class="ms" style="font-size:15px;color:#6a7177">lock</span>
+            <span style="font-size:11px;color:#6a7177;font-family:'JetBrains Mono',monospace">sign in to open</span>
+        </div>
+    </aside>
 
-    <!-- Body -->
-    <div class="vsc-body">
+    <!-- ===== Main area ===== -->
+    <main class="main-area">
 
-        <!-- Activity bar -->
-        <div class="actbar">
-            <div class="act-icon active" title="Explorer">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="round"/>
+        <div class="editor-tabs">
+            <div class="tab-welcome">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 12 L9 12 M9 12 L7 9.5 M9 12 L7 14.5" stroke="#4EC9B0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 12 L13 12 M13 12 L15 9.5 M13 12 L15 14.5" stroke="#9cdcfe" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
+                <span class="tab-welcome-label">Welcome</span>
+                <span class="ms et-close">close</span>
             </div>
-            <div class="act-icon" title="Search">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <circle cx="11" cy="11" r="7"/>
-                    <path d="M21 21l-4.35-4.35" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="act-icon" title="Source Control">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/>
-                    <path d="M6 8v8M8 6h7a3 3 0 0 1 3 3v1" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="act-icon" title="Extensions">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <rect x="3" y="3" width="8" height="8" rx="1"/>
-                    <rect x="13" y="3" width="8" height="8" rx="1"/>
-                    <rect x="3" y="13" width="8" height="8" rx="1"/>
-                    <path d="M13 17h2m2 0h2M19 13v2m0 2v2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="act-spacer"></div>
-            <div class="act-icon" title="Settings" onclick="window.location='/account/login'">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/>
-                </svg>
-            </div>
+            <a href="/auth/google" class="tab-getstarted">
+                <span class="ms" style="font-size:16px;color:#4EC9B0">check_circle</span>
+                <span>Get Started</span>
+            </a>
         </div>
 
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-title">Explorer</div>
+        <div class="editor-content">
+            <div class="content-wrap">
 
-            <div class="sidebar-section">
-                <div class="sidebar-section-head">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 3l3 3 3-3" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/></svg>
-                    CALLBACK-RELAY
-                </div>
-                <div class="tree">
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret">
-                            <svg viewBox="0 0 10 10" fill="none"><path d="M2 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        </div>
-                        <div class="tree-icon">📁</div>
-                        <div class="tree-label">src</div>
+                <!-- Hero -->
+                <div class="hero">
+                    <div class="hero-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                            <path d="M4 12 L9 12 M9 12 L7 9.5 M9 12 L7 14.5" stroke="#4EC9B0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M20 12 L13 12 M13 12 L15 9.5 M13 12 L15 14.5" stroke="#9cdcfe" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="1.6" fill="#4EC9B0"/>
+                        </svg>
                     </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">⚙️</div>
-                        <div class="tree-label">Program.cs</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">🗄️</div>
-                        <div class="tree-label">AppDbContext.cs</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret">
-                            <svg viewBox="0 0 10 10" fill="none"><path d="M2 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        </div>
-                        <div class="tree-icon">📁</div>
-                        <div class="tree-label">wwwroot</div>
-                    </div>
-                    <div class="tree-item active">
-                        <div class="tree-indent"></div>
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">🌐</div>
-                        <div class="tree-label">Welcome</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">📄</div>
-                        <div class="tree-label">apps.html</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">📄</div>
-                        <div class="tree-label">clients.html</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret">
-                            <svg viewBox="0 0 10 10" fill="none"><path d="M2 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        </div>
-                        <div class="tree-icon">📁</div>
-                        <div class="tree-label">Agent</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">⚙️</div>
-                        <div class="tree-label">Program.cs</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">📋</div>
-                        <div class="tree-label">README.md</div>
-                    </div>
-                    <div class="tree-item">
-                        <div class="tree-indent"></div>
-                        <div class="tree-caret"></div>
-                        <div class="tree-icon">🔧</div>
-                        <div class="tree-label">appsettings.json</div>
+                    <div>
+                        <div class="hero-title">Callback Relay</div>
+                        <div class="hero-sub">// Receive, inspect &amp; relay webhooks to localhost</div>
                     </div>
                 </div>
+
+                <!-- START -->
+                <div class="section-row">
+                    <span class="section-label">START</span>
+                    <div class="section-line"></div>
+                </div>
+                <a href="/auth/google" class="start-row">
+                    <span class="ms" style="font-size:22px;color:#9cdcfe;margin-top:1px">arrow_outward</span>
+                    <div>
+                        <div class="start-row-title">Sign in with Google</div>
+                        <div class="start-row-sub">Create a free account using your Google login</div>
+                    </div>
+                </a>
+                <a href="/account/login" class="start-row">
+                    <span class="ms" style="font-size:22px;color:#9cdcfe;margin-top:1px">person</span>
+                    <div>
+                        <div class="start-row-title">Sign in</div>
+                        <div class="start-row-sub">Already have an account</div>
+                    </div>
+                </a>
+
+                <!-- THE PROBLEM -->
+                <div class="section-row section-gap">
+                    <span class="section-label">THE PROBLEM IT SOLVES</span>
+                    <div class="section-line"></div>
+                </div>
+                <div class="code-panel" style="margin-bottom:14px">
+                    <div class="c-comment">// Your webhook sender (Stripe, GitHub, Twilio…) needs a public URL.</div>
+                    <div class="c-comment">// localhost:3000 isn't reachable from the internet.</div>
+                    <div style="margin-top:10px"><span class="c-method">POST</span> <span class="c-url">https://callback.erickmuthomi.dev/webhooks/stripe?slug=payments</span></div>
+                    <div class="c-plain">&nbsp;&nbsp;&nbsp;<span class="c-arrow">↓</span> received by the relay server</div>
+                    <div class="c-plain">&nbsp;&nbsp;&nbsp;<span class="c-arrow">↓</span> agent running on your machine picks it up</div>
+                    <div style="margin-top:4px"><span class="c-method">POST</span> <span class="c-url">http://localhost:3000/webhooks/stripe</span></div>
+                    <div class="c-plain">&nbsp;&nbsp;&nbsp;<span class="c-up">↑</span> arrives as if Stripe called you directly</div>
+                </div>
+
+                <!-- FEATURES -->
+                <div class="section-row section-gap">
+                    <span class="section-label">FEATURES</span>
+                    <div class="section-line"></div>
+                </div>
+                <div class="feature-grid" style="margin-bottom:14px">
+                    <div class="feat-card">
+                        <div class="feat-title">realtime_feed()</div>
+                        <div class="feat-desc">Every incoming webhook appears instantly. Headers, body, query params, source IP — all visible.</div>
+                    </div>
+                    <div class="feat-card">
+                        <div class="feat-title">relay_to_local(<span style="color:#9cdcfe">port</span>, <span style="color:#9cdcfe">path</span>)</div>
+                        <div class="feat-desc">Install the agent once. It stays connected and forwards callbacks to whatever port and path you configure.</div>
+                    </div>
+                    <div class="feat-card">
+                        <div class="feat-title"><span style="color:#4EC9B0">delivery_mode</span>: <span style="color:#CE9178">"Both"</span></div>
+                        <div class="feat-desc">Web only, local only, or both. Switch per app, any time. Local mode keeps callbacks off the web feed entirely.</div>
+                    </div>
+                    <div class="feat-card">
+                        <div class="feat-title"><span style="color:#4EC9B0">rate_limit</span>(<span style="color:#b5cea8">60</span>, <span style="color:#CE9178">"per_slug"</span>)</div>
+                        <div class="feat-desc">60 requests per minute per slug. Global IP-based limit on top. No runaway webhook floods.</div>
+                    </div>
+                </div>
+
+                <!-- QUICK TEST -->
+                <div class="section-row section-gap">
+                    <span class="section-label">QUICK TEST (NO ACCOUNT NEEDED)</span>
+                    <div class="section-line"></div>
+                </div>
+                <p style="font-size:14px;color:#c0c8cd;margin-bottom:12px">Send a webhook to the public demo endpoint and inspect it instantly after signing in.</p>
+                <div class="code-panel">
+                    <div class="c-comment"># Send a test callback to your app slug</div>
+                    <div><span class="c-fn">curl</span> <span class="c-flag">-X</span> <span class="c-method">POST</span> <span class="c-str">"https://callback.erickmuthomi.dev/test?slug=your-slug"</span> <span class="c-plain">\</span></div>
+                    <div>&nbsp;&nbsp;<span class="c-flag">-H</span> <span class="c-str">"Content-Type: application/json"</span> <span class="c-plain">\</span></div>
+                    <div>&nbsp;&nbsp;<span class="c-flag">-d</span> <span class="c-str">'{"hello":"world","source":"curl"}'</span></div>
+                </div>
+
+                <!-- Footer actions -->
+                <div class="foot-actions">
+                    <a href="/auth/google" class="btn-get-started">
+                        <span class="ms" style="font-size:18px">arrow_outward</span>Get started
+                    </a>
+                    <a href="/account/login" class="btn-sign-in">Sign in</a>
+                    <div class="foot-spacer"></div>
+                    <div class="home-badge">
+                        <span class="ms" style="font-size:15px">home</span>Home lab — may be down occasionally
+                    </div>
+                </div>
+
             </div>
         </div>
-
-        <!-- Editor -->
-        <div class="editor-area">
-            <div class="tabbar">
-                <div class="tab active">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#007acc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#4ec9b0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="12" cy="12" r="1.4" fill="#007acc"/>
-                    </svg>
-                    Welcome
-                    <span class="tab-x">×</span>
-                </div>
-                <div class="tab" onclick="window.location='/account/login'">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#569cd6" stroke-width="1.6"><path d="M9 12l2 2 4-4M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    Get Started
-                    <span class="tab-x">×</span>
-                </div>
-            </div>
-
-            <div class="editor">
-                <div class="welcome-wrap">
-
-                    <div class="welcome-header">
-                        <div class="welcome-logo">
-                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-                                <path d="M4 12 L9 12 M9 12 L7 9 M9 12 L7 15" stroke="#007acc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M20 12 L13 12 M13 12 L15 9 M13 12 L15 15" stroke="#4ec9b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <circle cx="12" cy="12" r="1.8" fill="#007acc"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="welcome-title">Callback Relay</div>
-                            <div class="welcome-sub"><span class="comment">// Receive, inspect &amp; relay webhooks to localhost</span></div>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <div class="section-title">Start</div>
-                        <div class="start-list">
-                            <a href="/auth/google" class="start-item">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-9 9M3 21l9-9"/></svg>
-                                <div>
-                                    <div class="start-item-main">Sign in with Google</div>
-                                    <div class="start-item-sub">Create a free account using your Google login</div>
-                                </div>
-                            </a>
-                            <a href="/account/login" class="start-item">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                                <div>
-                                    <div class="start-item-main">Sign in</div>
-                                    <div class="start-item-sub">Already have an account</div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="section">
-                        <div class="section-title">The problem it solves</div>
-                        <div class="code-block">
-<span class="cm">// Your webhook sender (Stripe, GitHub, Twilio...) needs a</span>
-<span class="cm">// public URL. localhost:3000 isn't reachable from the internet.</span>
-
-<span class="kw">POST</span> <span class="st">https://callback.erickmuthomi.dev/webhooks/stripe?slug=payments</span>
-         <span class="cm">↓  received by the relay server</span>
-         <span class="cm">↓  agent running on your machine picks it up</span>
-<span class="kw">POST</span> <span class="st">http://localhost:3000/webhooks/stripe</span>
-         <span class="cm">↑  arrives as if Stripe called you directly</span>
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="section">
-                        <div class="section-title">Features</div>
-                        <div class="feature-grid">
-                            <div class="feature-card">
-                                <div class="feature-card-title">realtime_feed()</div>
-                                <div class="feature-card-desc">Every incoming webhook appears instantly. Headers, body, query params, source IP — all visible.</div>
-                            </div>
-                            <div class="feature-card">
-                                <div class="feature-card-title">relay_to_local(port, path)</div>
-                                <div class="feature-card-desc">Install the agent once. It stays connected and forwards callbacks to whatever port and path you configure.</div>
-                            </div>
-                            <div class="feature-card">
-                                <div class="feature-card-title">delivery_mode: "Both"</div>
-                                <div class="feature-card-desc">Web only, local only, or both. Switch per app, any time. Local mode keeps callbacks off the web feed entirely.</div>
-                            </div>
-                            <div class="feature-card">
-                                <div class="feature-card-title">rate_limit(60, "per_slug")</div>
-                                <div class="feature-card-desc">60 requests per minute per slug. Global IP-based limit on top. No runaway webhook floods.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="section">
-                        <div class="section-title">Quick test (no account needed)</div>
-                        <div style="margin-bottom:10px;font-size:12px;color:var(--muted);">Send a webhook to the public demo endpoint and inspect it instantly after signing in.</div>
-                        <div class="code-block">
-<span class="cm"># Send a test callback to your app slug</span>
-<span class="fn">curl</span> -X <span class="kw">POST</span> <span class="st">"https://callback.erickmuthomi.dev/test?slug=your-slug"</span> \
-     -H <span class="st">"Content-Type: application/json"</span> \
-     -d <span class="st">'{"hello":"world","source":"curl"}'</span>
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                        <div class="btn-row">
-                            <a href="/auth/google" class="btn-primary">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-9 9M3 21l9-9"/></svg>
-                                Get started
-                            </a>
-                            <a href="/account/login" class="btn-ghost">Sign in</a>
-                        </div>
-                        <span class="badge badge-home-lab">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                            Home lab — may be down occasionally
-                        </span>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-    </div><!-- /vsc-body -->
-
-    <!-- Status bar -->
-    <div class="statusbar">
-        <div class="status-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            main
-        </div>
-        <div class="status-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-            Callback Relay
-        </div>
-        <div class="status-spacer"></div>
-        <div class="status-item">UTF-8</div>
-        <div class="status-item">ASP.NET Core 9</div>
-        <div class="status-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Ready
-        </div>
-    </div>
+    </main>
 
 </div>
 
+<!-- ===== Status bar (blue) ===== -->
+<div class="statusbar">
+    <div class="sb-spacer"></div>
+    <div class="sb-item"><span style="font-size:11px">UTF-8</span></div>
+    <div class="sb-item"><span style="font-size:11px">ASP.NET Core 9</span></div>
+    <div class="sb-item"><span class="ms" style="font-size:14px">bolt</span><span style="font-size:11px">Ready</span></div>
+</div>
+
 <script>
-// If already logged in, go straight to the feed
+// If already signed in, go straight to the feed
 (async () => {
     try {
         const res = await fetch("/auth/me");
@@ -772,6 +346,5 @@
     } catch {}
 })();
 </script>
-
 </body>
 </html>
