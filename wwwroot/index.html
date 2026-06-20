@@ -265,10 +265,12 @@
             font-size: 11px; padding: 2px 7px; border: 1px solid rgba(78,201,176,0.35);
             color: #4EC9B0; font-family: 'JetBrains Mono', monospace;
             font-weight: 400; text-transform: none; letter-spacing: 0;
+            max-width: 220px; overflow: hidden; white-space: nowrap; flex: none;
         }
+        .relay-url { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
         .card-path {
             font-size: 13px; color: #CE9178; font-family: 'JetBrains Mono', monospace;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;
         }
         .card-spacer { flex: 1; }
         .card-ip {

@@ -84,6 +84,7 @@ builder.Services
         o.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         o.PayloadSerializerOptions.DefaultIgnoreCondition =
             System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        o.PayloadSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     o.SerializerOptions.DefaultIgnoreCondition =
         System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
 // ── Build ─────────────────────────────────────────────────────────────────────

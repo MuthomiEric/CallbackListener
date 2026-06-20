@@ -170,8 +170,8 @@ function buildCard(cb, isNew) {
 
     const relayBadge = cb.relay
         ? `<span class="badge badge-relay">
-             <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 12 L20 12 M14 6 L20 12 L14 18" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-             ${esc(cb.relay.scheme)}://localhost:${cb.relay.port}${esc(cb.relay.basePath)}
+             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="flex:none"><path d="M4 12 L20 12 M14 6 L20 12 L14 18" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+             <span class="relay-url">${esc(cb.relay.scheme)}://localhost:${cb.relay.port}${esc(cb.relay.basePath)}</span>
            </span>`
         : "";
 
