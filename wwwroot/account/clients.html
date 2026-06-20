@@ -116,6 +116,7 @@
             font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: background 120ms;
         }
         .btn-primary:hover { background: #5fd6c0; }
+        .btn-primary:disabled { background: #2c3032; color: #6a7177; cursor: not-allowed; }
 
         /* ── Table ── */
         .table-shell { border: 1px solid #2c3032; }
@@ -475,9 +476,13 @@ async function loadClients() {
 function render() {
     const body = document.getElementById("table-body");
     body.innerHTML = "";
-    document.getElementById("page-sub").textContent = `// ${clients.length} machines registered`;
+    const atLimit = clients.length >= 5;
+    document.getElementById("page-sub").textContent = `// ${clients.length}/5 machines registered`;
     const sbCount = document.getElementById("sb-client-count");
-    if (sbCount) sbCount.textContent = `${clients.length} clients`;
+    if (sbCount) sbCount.textContent = `${clients.length}/5 clients`;
+    const addBtn = document.getElementById("add-btn");
+    addBtn.disabled = atLimit;
+    addBtn.title = atLimit ? "Limit reached (5/5) — delete a client to add a new one" : "";
 
     if (clients.length === 0) {
         body.innerHTML = `<div style="padding:32px 14px;text-align:center;color:#6a7177;font-family:'JetBrains Mono',monospace;font-size:13px;">// no clients yet — add one to get started</div>`;

@@ -52,6 +52,10 @@ public static class ListenerEndpoints
             if (string.IsNullOrEmpty(slug))
                 return Results.BadRequest(new { error = "Slug is required" });
 
+            var appCount = await db.Listeners.CountAsync(l => l.UserId == userId);
+            if (appCount >= 5)
+                return Results.Conflict(new { error = "App limit reached (5 max). Delete an existing app to add a new one." });
+
             if (await db.Listeners.AnyAsync(l => l.Slug == slug))
                 return Results.Conflict(new { error = "Slug already taken" });
 

@@ -3,7 +3,9 @@ using System.Security.Cryptography;
 using CallbackListener.Application.Interfaces;
 using CallbackListener.Domain;
 using CallbackListener.Infrastructure.Data;
+using CallbackListener.Infrastructure.Hubs;
 using CallbackListener.Infrastructure.Security;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -49,6 +51,10 @@ public static class ClientEndpoints
             if (string.IsNullOrWhiteSpace(req.Label))
                 return Results.BadRequest(new { error = "Label is required" });
 
+            var count = await db.Clients.CountAsync(c => c.UserId == userId);
+            if (count >= 5)
+                return Results.Conflict(new { error = "Client limit reached (5 max). Delete an existing client to add a new one." });
+
             var rawKey = "cr_live_" + GenerateHex(32);
             var client = new Client
             {
@@ -72,13 +78,18 @@ public static class ClientEndpoints
             });
         });
 
-        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, IMemoryCache cache) =>
+        group.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, AppDbContext db, IMemoryCache cache,
+            IAgentRegistry registry, IHubContext<AgentHub> agentHub) =>
         {
             var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
             if (client is null) return Results.NotFound();
+
+            var agent = registry.GetByClientId(id.ToString());
+            if (agent?.IsOnline == true)
+                await agentHub.Clients.Client(agent.ConnectionId).SendAsync("Shutdown");
 
             db.Clients.Remove(client);
             await db.SaveChangesAsync();

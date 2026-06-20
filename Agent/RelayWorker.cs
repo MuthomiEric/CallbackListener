@@ -19,15 +19,18 @@ public sealed class RelayWorker : BackgroundService
     private readonly AgentOptions _options;
     private readonly HttpClient _http;
     private readonly ILogger<RelayWorker> _logger;
+    private readonly IHostApplicationLifetime _appLifetime;
 
     public RelayWorker(
         IOptions<AgentOptions> options,
         HttpClient http,
-        ILogger<RelayWorker> logger)
+        ILogger<RelayWorker> logger,
+        IHostApplicationLifetime appLifetime)
     {
         _options = options.Value;
         _http = http;
         _logger = logger;
+        _appLifetime = appLifetime;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -49,6 +52,12 @@ public sealed class RelayWorker : BackgroundService
 
             connection.On<RelayEntry>("CallbackReceived", entry =>
                 _ = ForwardAsync(entry, stoppingToken));
+
+            connection.On("Shutdown", () =>
+            {
+                _logger.LogInformation("Server revoked this client — shutting down agent");
+                _appLifetime.StopApplication();
+            });
 
             try
             {

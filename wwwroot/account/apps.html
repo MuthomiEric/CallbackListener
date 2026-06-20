@@ -116,6 +116,7 @@
             font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: background 120ms;
         }
         .btn-primary:hover { background: #5fd6c0; }
+        .btn-primary:disabled { background: #2c3032; color: #6a7177; cursor: not-allowed; }
 
         /* ── Table ── */
         .table-shell { border: 1px solid #2c3032; }
@@ -494,9 +495,13 @@ function render() {
     const body = document.getElementById("table-body");
     body.innerHTML = "";
     const active = apps.filter(a => a.isActive).length;
-    document.getElementById("page-sub").textContent = `// ${apps.length} registered · ${active} active`;
+    const atLimit = apps.length >= 5;
+    document.getElementById("page-sub").textContent = `// ${apps.length}/5 registered · ${active} active`;
     const sbCount = document.getElementById("sb-app-count");
-    if (sbCount) sbCount.textContent = `${apps.length} apps`;
+    if (sbCount) sbCount.textContent = `${apps.length}/5 apps`;
+    const addBtn = document.getElementById("add-btn");
+    addBtn.disabled = atLimit;
+    addBtn.title = atLimit ? "Limit reached (5/5) — delete an app to add a new one" : "";
 
     if (apps.length === 0) {
         body.innerHTML = `<div style="padding:32px 14px;text-align:center;color:#6a7177;font-family:'JetBrains Mono',monospace;font-size:13px;">// no apps yet — add one to get started</div>`;

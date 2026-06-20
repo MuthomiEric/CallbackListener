@@ -9,6 +9,10 @@ appsettings.Development.json
 *.db-shm
 *.db-wal
 
+# Publish output
+publish_linux/
+publish_linux_sc/
+
 # User-specific files
 *.rsuser
 *.suo
