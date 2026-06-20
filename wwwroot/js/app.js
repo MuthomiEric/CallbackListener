@@ -393,10 +393,27 @@ function matchesFilter(cb, slug, status, search) {
     return true;
 }
 
+function syntaxHighlight(json) {
+    // Groups: 1=key (includes trailing colon), 2=string value, 3=bool, 4=null, 5=number
+    const re = /("(?:[^\\"]|\\.)*"\s*:)|("(?:[^\\"]|\\.)*")|(\btrue\b|\bfalse\b)|(\bnull\b)|(-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g;
+    let out = '', last = 0, m;
+    while ((m = re.exec(json)) !== null) {
+        out += esc(json.slice(last, m.index));
+        const tok = m[0];
+        if      (m[1]) { const c = tok.lastIndexOf(':'); out += `<span class="json-key">${esc(tok.slice(0,c))}</span>${esc(tok.slice(c))}`; }
+        else if (m[2]) { out += `<span class="json-str">${esc(tok)}</span>`; }
+        else if (m[3]) { out += `<span class="json-bool">${esc(tok)}</span>`; }
+        else if (m[4]) { out += `<span class="json-null">${esc(tok)}</span>`; }
+        else if (m[5]) { out += `<span class="json-num">${esc(tok)}</span>`; }
+        last = re.lastIndex;
+    }
+    return out + esc(json.slice(last));
+}
+
 function formatBody(cb) {
     if (!cb.rawBody) return "(empty body)";
     if (cb.isJsonBody) {
-        try { return esc(JSON.stringify(JSON.parse(cb.rawBody), null, 2)); } catch { /* fall through */ }
+        try { return syntaxHighlight(JSON.stringify(JSON.parse(cb.rawBody), null, 2)); } catch { /* fall through */ }
     }
     return esc(cb.rawBody);
 }
