@@ -13,6 +13,8 @@
     if (me.isAdmin) {
         const adminLink = document.getElementById("admin-link");
         if (adminLink) adminLink.hidden = false;
+        const adminSideFile = document.getElementById("admin-sidebar-file");
+        if (adminSideFile) adminSideFile.hidden = false;
     }
     await loadApps();
 })();
