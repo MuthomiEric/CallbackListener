@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -37,17 +38,31 @@ public sealed class RelayWorker : BackgroundService
     {
         if (string.IsNullOrWhiteSpace(_options.ServerUrl))
         {
-            _logger.LogCritical("Agent:ServerUrl is not configured. Run with --help to see usage.");
+            _logger.LogCritical("Agent:ServerUrl is not configured — removing service");
+            SelfRemove();
+            _appLifetime.StopApplication();
             return;
         }
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
-            _logger.LogCritical("Agent:ApiKey is not configured. Run 'CallbackAgent install --help' to see usage.");
+            _logger.LogCritical("Agent:ApiKey is not configured — removing service");
+            SelfRemove();
+            _appLifetime.StopApplication();
             return;
         }
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Validate key before connecting; skip if server is unreachable (network down)
+            var keyValid = await IsKeyValidAsync(stoppingToken);
+            if (keyValid == false)
+            {
+                _logger.LogCritical("API key is invalid or revoked — removing service");
+                SelfRemove();
+                _appLifetime.StopApplication();
+                return;
+            }
+
             var connection = BuildConnection();
 
             connection.On<RelayEntry>("CallbackReceived", entry =>
@@ -178,6 +193,61 @@ public sealed class RelayWorker : BackgroundService
         }
 
         return request;
+    }
+
+    /// <summary>
+    /// Returns true = key valid, false = key invalid/revoked, null = server unreachable.
+    /// </summary>
+    private async Task<bool?> IsKeyValidAsync(CancellationToken ct)
+    {
+        try
+        {
+            var url = $"{_options.ServerUrl.TrimEnd('/')}/api/agent/check";
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.Add("X-Api-Key", _options.ApiKey);
+            using var res = await _http.SendAsync(req, ct);
+            return res.StatusCode != System.Net.HttpStatusCode.Unauthorized;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch
+        {
+            return null; // server unreachable — keep retrying the connection
+        }
+    }
+
+    private void SelfRemove()
+    {
+        try
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                const string unitPath = "/etc/systemd/system/callback-agent.service";
+                Exec("systemctl", "disable callback-agent");
+                if (File.Exists(unitPath)) File.Delete(unitPath);
+                Exec("systemctl", "daemon-reload");
+                _logger.LogInformation("Systemd unit removed");
+            }
+            else if (OperatingSystem.IsWindows())
+            {
+                Exec("sc", "delete CallbackAgent"); // marks for deletion on service stop
+                _logger.LogInformation("Windows service marked for removal");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "SelfRemove failed — remove the service manually");
+        }
+    }
+
+    private static void Exec(string file, string args)
+    {
+        using var proc = Process.Start(new ProcessStartInfo(file, args)
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+        });
+        proc?.WaitForExit(5_000);
     }
 
     // Exponential back-off: 2s, 5s, 10s, 30s, then 30s forever
