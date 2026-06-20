@@ -70,7 +70,8 @@ public sealed class RelayWorker : BackgroundService
 
             connection.On("Shutdown", () =>
             {
-                _logger.LogInformation("Server revoked this client — shutting down agent");
+                _logger.LogInformation("Server revoked this client — removing and shutting down agent");
+                SelfRemove();
                 _appLifetime.StopApplication();
             });
 

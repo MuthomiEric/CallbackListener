@@ -12,6 +12,16 @@ appsettings.Development.json
 # Publish output
 publish_linux/
 publish_linux_sc/
+publish_win_agent/
+publish_linux_agent/
+publish_linux_arm64_agent/
+publish_linux_agent_sf/
+publish_linux_arm64_agent_sf/
+publish_win_agent_sf/
+publish_server/
+
+# Agent binaries hosted for download — large files, regenerated on deploy
+wwwroot/downloads/
 
 # User-specific files
 *.rsuser

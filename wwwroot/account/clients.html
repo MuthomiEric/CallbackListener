@@ -242,6 +242,10 @@
         }
         .btn-copy-cmd:hover { background: #282a2b; color: #e2e2e2; }
         .btn-copy-cmd.copied { color: #4EC9B0; border-color: rgba(78,201,176,0.35); }
+        .os-tabs { display: flex; gap: 4px; }
+        .os-tab { height: 22px; padding: 0 9px; background: transparent; border: 1px solid #2c3032; border-radius: 0; color: #6a7177; font-size: 11px; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: all 120ms; }
+        .os-tab:hover { color: #c0c8cd; background: #1f2222; }
+        .os-tab.active { background: #1f2424; color: #4EC9B0; border-color: rgba(78,201,176,0.35); }
 
         /* ── Status bar ── */
         .statusbar {
@@ -414,7 +418,11 @@
                 </button>
                 <div class="install-panel">
                     <div class="install-head">
-                        <span class="install-label">install command</span>
+                        <span class="install-label">install agent</span>
+                        <div class="os-tabs">
+                            <button class="os-tab active" id="tab-linux">Linux</button>
+                            <button class="os-tab" id="tab-win">Windows</button>
+                        </div>
                         <button class="btn-copy-cmd" id="copy-cmd-btn">copy</button>
                     </div>
                     <div class="install-cmd" id="install-cmd"></div>
@@ -454,6 +462,9 @@
 let clients       = [];
 let currentKey    = "";
 let currentCmd    = "";
+let cmdLinux      = "";
+let cmdWin        = "";
+let currentOs     = "linux";
 let copyTimer     = null;
 let copyCmdTimer  = null;
 const serverOrigin = location.origin;
@@ -585,6 +596,9 @@ const labelInput  = document.getElementById("client-label");
 function openModal() {
     labelInput.value = "";
     document.getElementById("copy-key-label").textContent = "copy key";
+    currentOs = "linux";
+    document.getElementById("tab-linux").classList.add("active");
+    document.getElementById("tab-win").classList.remove("active");
     setStage("label");
     overlay.classList.remove("hidden");
     labelInput.focus();
@@ -629,12 +643,13 @@ document.getElementById("create-btn").addEventListener("click", async () => {
 
     document.getElementById("reveal-label").textContent = data.label;
     document.getElementById("key-val").textContent = currentKey;
-    currentCmd = `CallbackAgent install --server ${serverOrigin} --api-key ${currentKey}`;
-    document.getElementById("install-cmd").innerHTML =
-        `<strong>CallbackAgent install</strong> --server ${esc(serverOrigin)} --api-key ${esc(currentKey)}`;
+
+    cmdLinux = `curl -fsSL ${serverOrigin}/install.sh | sudo bash -s -- --api-key ${currentKey}`;
+    cmdWin   = `powershell -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm '${serverOrigin}/install.ps1'))) -ApiKey '${currentKey}'"`;
+
     document.getElementById("copy-cmd-btn").textContent = "copy";
     document.getElementById("copy-cmd-btn").classList.remove("copied");
-
+    setOsTab("linux");
     setStage("reveal");
 
     clients.unshift({ id: data.id, label: data.label, masked: data.masked, isOnline: false, createdAt: data.createdAt, lastUsedAt: null });
@@ -655,6 +670,26 @@ document.getElementById("copy-cmd-btn").addEventListener("click", () => {
     clearTimeout(copyCmdTimer);
     copyCmdTimer = setTimeout(() => { btn.textContent = "copy"; btn.classList.remove("copied"); }, 1600);
 });
+
+function setOsTab(os) {
+    currentOs  = os;
+    currentCmd = os === "linux" ? cmdLinux : cmdWin;
+    document.getElementById("tab-linux").classList.toggle("active", os === "linux");
+    document.getElementById("tab-win").classList.toggle("active",   os === "win");
+    const el = document.getElementById("install-cmd");
+    if (os === "linux") {
+        el.innerHTML = `curl -fsSL <strong>${esc(serverOrigin)}/install.sh</strong> | sudo bash -s -- --api-key ${esc(currentKey)}`;
+    } else {
+        el.innerHTML = `powershell -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm '<strong>${esc(serverOrigin)}/install.ps1</strong>'))) -ApiKey '${esc(currentKey)}'"`;
+    }
+    clearTimeout(copyCmdTimer);
+    const btn = document.getElementById("copy-cmd-btn");
+    btn.textContent = "copy";
+    btn.classList.remove("copied");
+}
+
+document.getElementById("tab-linux").addEventListener("click", () => setOsTab("linux"));
+document.getElementById("tab-win").addEventListener("click",   () => setOsTab("win"));
 
 document.getElementById("done-btn").addEventListener("click", () => { closeModal(); render(); });
 </script>

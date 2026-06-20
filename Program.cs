@@ -171,7 +171,15 @@ app.Use(async (ctx, next) =>
     await next(ctx);
 });
 
-app.UseStaticFiles();   // serves wwwroot files before routing touches anything
+var mimeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+mimeProvider.Mappings[".sh"]  = "text/plain";
+mimeProvider.Mappings[".ps1"] = "text/plain";
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider  = mimeProvider,
+    ServeUnknownFileTypes = true,          // allows extension-less binaries in /downloads/
+    DefaultContentType   = "application/octet-stream",
+});   // serves wwwroot files before routing touches anything
 app.UseRouting();       // explicit placement so catch-all never races with static files
 app.UseAuthentication();
 app.UseAuthorization();

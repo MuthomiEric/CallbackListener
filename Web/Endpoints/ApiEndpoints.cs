@@ -8,8 +8,38 @@ namespace CallbackListener.Web.Endpoints;
 
 public static class ApiEndpoints
 {
+    // Binaries and install scripts served explicitly so the /{**subpath} webhook
+    // catch-all never swallows them (it returns 400 when no ?slug= is present).
+    private static readonly HashSet<string> AllowedDownloads = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CallbackAgent-linux-x64",
+        "CallbackAgent-linux-arm64",
+        "CallbackAgent-win-x64.exe",
+    };
+
     public static void MapApiEndpoints(this WebApplication app)
     {
+        app.MapGet("/install.sh", (IWebHostEnvironment env) =>
+        {
+            var path = Path.Combine(env.WebRootPath, "install.sh");
+            return File.Exists(path) ? Results.File(path, "text/plain; charset=utf-8") : Results.NotFound();
+        });
+
+        app.MapGet("/install.ps1", (IWebHostEnvironment env) =>
+        {
+            var path = Path.Combine(env.WebRootPath, "install.ps1");
+            return File.Exists(path) ? Results.File(path, "text/plain; charset=utf-8") : Results.NotFound();
+        });
+
+        app.MapGet("/downloads/{file}", (string file, IWebHostEnvironment env) =>
+        {
+            if (!AllowedDownloads.Contains(file)) return Results.NotFound();
+            var path = Path.Combine(env.WebRootPath, "downloads", file);
+            return File.Exists(path)
+                ? Results.File(path, "application/octet-stream", file)
+                : Results.NotFound();
+        });
+
         // Agent key validation — no cookie auth, key in header
         app.MapGet("/api/agent/check", async (HttpContext ctx, AppDbContext db) =>
         {
