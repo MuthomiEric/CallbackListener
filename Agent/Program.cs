@@ -164,6 +164,12 @@ static void InstallWindowsService()
 {
     var exe = Environment.ProcessPath!;
 
+    // Stop and remove any existing installation so the new binary takes effect
+    Console.WriteLine("Stopping existing service (if any)…");
+    Run("sc", $"stop {ServiceName}");
+    Run("sc", $"delete {ServiceName}");
+    System.Threading.Thread.Sleep(1500); // let SCM finish cleanup
+
     Console.WriteLine("Installing Windows service…");
     Run("sc", $"create {ServiceName} binPath= \"{exe}\" start= auto DisplayName= \"{ServiceDisplay}\"");
     Run("sc", $"description {ServiceName} \"{ServiceDesc}\"");

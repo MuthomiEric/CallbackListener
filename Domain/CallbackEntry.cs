@@ -38,7 +38,8 @@ public sealed record RelayTarget(string Scheme, int Port, string BasePath, strin
 
 public enum CallbackStatus
 {
-    Received,   // no listener registered — displayed on dashboard only
-    Routed,     // forwarded to connected agent
-    Dropped     // listener registered but agent is offline, or delivery failed
+    Received,   // no listener registered — web only, no agent involved
+    Routed,     // dispatched to agent — local delivery in-flight
+    Delivered,  // agent confirmed local service responded
+    Dropped     // agent could not reach local service
 }

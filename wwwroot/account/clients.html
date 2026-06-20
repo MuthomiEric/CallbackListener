@@ -244,6 +244,27 @@
         .os-tab:hover { color: #c0c8cd; background: #1f2222; }
         .os-tab.active { background: #1f2424; color: #4EC9B0; border-color: rgba(78,201,176,0.35); }
 
+        /* ── Mobile ── */
+        .mob-sidebar-btn { display: none; }
+        .mob-overlay     { display: none; }
+        @media (max-width: 768px) {
+            .explorer { display: none; position: fixed; left: 48px; top: 0; bottom: 24px; z-index: 50; width: 240px; box-shadow: 4px 0 24px rgba(0,0,0,0.7); }
+            .explorer.is-open { display: flex; }
+            .mob-overlay { display: none; position: fixed; inset: 0; z-index: 49; background: rgba(0,0,0,0.45); }
+            .mob-overlay.is-open { display: block; }
+            .actbar { width: 48px; }
+            .mob-sidebar-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 24px; background: none; border: none; color: #8a9297; cursor: pointer; padding: 0; flex: none; }
+            .mob-sidebar-btn:hover { color: #c0c8cd; }
+            .editor-tab:not(.et-active) { display: none; }
+            .et-actions { display: none; }
+            .editor-content { padding: 14px 12px 40px; }
+            .page-head { flex-direction: column; gap: 12px; }
+            .table-shell { overflow-x: auto; }
+            .table-head, .client-row { min-width: 600px; }
+            .dialog-box { width: calc(100vw - 32px); }
+            .modal { max-width: 100%; }
+        }
+
         /* ── Status bar ── */
         .statusbar {
             height: 24px; background: #9cdcfe; color: #16627f;
@@ -327,6 +348,7 @@
         </div>
 
         <div class="breadcrumb-bar">
+            <button class="mob-sidebar-btn" id="mob-sidebar-btn"><span class="ms" style="font-size:18px">menu</span></button>
             <span class="bc-seg">callback-relay</span>
             <span class="ms bc-sep">chevron_right</span>
             <span class="bc-seg bc-active">clients.json</span>
@@ -443,6 +465,8 @@
     </div>
 </div>
 
+<div class="mob-overlay" id="mob-overlay"></div>
+
 <!-- ===== Status bar ===== -->
 <div class="statusbar">
     <div class="sb-item"><span class="ms" style="font-size:14px">account_tree</span><span style="font-size:11px">main</span></div>
@@ -519,6 +543,7 @@ document.getElementById("signout-btn").addEventListener("click", async () => {
     await fetch("/auth/logout", { method: "POST" });
     location.replace("/landing");
 });
+(function(){const btn=document.getElementById("mob-sidebar-btn"),ov=document.getElementById("mob-overlay"),ex=document.querySelector(".explorer");btn?.addEventListener("click",()=>{const o=ex.classList.toggle("is-open");ov.classList.toggle("is-open",o);});ov?.addEventListener("click",()=>{ex.classList.remove("is-open");ov.classList.remove("is-open");});})();
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 async function loadClients() {
@@ -654,7 +679,17 @@ document.getElementById("create-btn").addEventListener("click", async () => {
 
 document.getElementById("copy-key-btn").addEventListener("click", () => {
     try { navigator.clipboard?.writeText(currentKey); } catch {}
-    document.getElementById("copy-key-label").textContent = "copied to clipboard";
+
+    // Download a pre-filled appsettings.json the agent can use directly
+    const config = { Agent: { ServerUrl: location.origin, ApiKey: currentKey } };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "appsettings.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    document.getElementById("copy-key-label").textContent = "copied & saved";
     clearTimeout(copyTimer);
     copyTimer = setTimeout(() => { document.getElementById("copy-key-label").textContent = "copy key"; }, 1600);
 });

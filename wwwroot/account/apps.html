@@ -240,6 +240,30 @@
         }
         .btn-ghost:hover { background: #1f2222; color: #e2e2e2; }
 
+        /* ── Mobile ── */
+        .mob-sidebar-btn { display: none; }
+        .mob-overlay     { display: none; }
+        @media (max-width: 768px) {
+            .explorer { display: none; position: fixed; left: 48px; top: 0; bottom: 24px; z-index: 50; width: 240px; box-shadow: 4px 0 24px rgba(0,0,0,0.7); }
+            .explorer.is-open { display: flex; }
+            .mob-overlay { display: none; position: fixed; inset: 0; z-index: 49; background: rgba(0,0,0,0.45); }
+            .mob-overlay.is-open { display: block; }
+            .actbar { width: 48px; }
+            .mob-sidebar-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 24px; background: none; border: none; color: #8a9297; cursor: pointer; padding: 0; flex: none; }
+            .mob-sidebar-btn:hover { color: #c0c8cd; }
+            .editor-tab:not(.et-active) { display: none; }
+            .et-actions { display: none; }
+            .editor-content { padding: 14px 12px 40px; }
+            .page-head { flex-direction: column; gap: 12px; }
+            .table-shell { overflow-x: auto; }
+            .table-head, .row-grid { min-width: 580px; }
+            .url-bar { margin: 0 0 10px 0; min-width: 580px; }
+            .dialog-box { width: calc(100vw - 32px); }
+            .modal { max-width: 100%; }
+            .row-3 { flex-wrap: wrap; }
+            .row-3 .w116 { width: auto; flex: 1 1 calc(50% - 6px); }
+        }
+
         /* ── Status bar ── */
         .statusbar {
             height: 24px; background: #9cdcfe; color: #16627f;
@@ -323,6 +347,7 @@
         </div>
 
         <div class="breadcrumb-bar">
+            <button class="mob-sidebar-btn" id="mob-sidebar-btn"><span class="ms" style="font-size:18px">menu</span></button>
             <span class="bc-seg">callback-relay</span>
             <span class="ms bc-sep">chevron_right</span>
             <span class="bc-seg bc-active">apps.json</span>
@@ -426,6 +451,8 @@
     </div>
 </div>
 
+<div class="mob-overlay" id="mob-overlay"></div>
+
 <!-- ===== Status bar ===== -->
 <div class="statusbar">
     <div class="sb-item"><span class="ms" style="font-size:14px">account_tree</span><span style="font-size:11px">main</span></div>
@@ -522,6 +549,7 @@ document.getElementById("signout-btn").addEventListener("click", async () => {
     await fetch("/auth/logout", { method: "POST" });
     location.replace("/landing");
 });
+(function(){const btn=document.getElementById("mob-sidebar-btn"),ov=document.getElementById("mob-overlay"),ex=document.querySelector(".explorer");btn?.addEventListener("click",()=>{const o=ex.classList.toggle("is-open");ov.classList.toggle("is-open",o);});ov?.addEventListener("click",()=>{ex.classList.remove("is-open");ov.classList.remove("is-open");});})();
 
 function populateClientSelect() {
     const sel = document.getElementById("f-client");

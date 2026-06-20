@@ -92,6 +92,20 @@ connection.on("CallbackReceived", (entry) => {
 connection.on("AgentList",          (list)  => { agents.clear(); list.forEach(a => agents.set(a.clientId, a)); renderSidebar(); });
 connection.on("AgentStatusChanged", (agent) => { agents.set(agent.clientId, agent); renderSidebar(); });
 
+connection.on("CallbackUpdated", (entry) => {
+    const idx = allCallbacks.findIndex(cb => cb.id === entry.id);
+    if (idx !== -1) allCallbacks[idx] = entry;
+
+    const card = document.querySelector(`.callback-card[data-id="${entry.id}"]`);
+    if (!card) return;
+
+    const dropped = entry.status === "Dropped";
+    card.classList.toggle("dropped", dropped);
+
+    const localVal = card.querySelector(".del-local .del-val");
+    if (localVal) localVal.outerHTML = buildLocalVal(entry.status, entry.statusDetail);
+});
+
 connection.onreconnecting(() => setStatus("reconnect"));
 connection.onreconnected(()  => setStatus("online"));
 connection.onclose(()        => setStatus("offline"));
@@ -160,9 +174,10 @@ function buildCard(cb, isNew) {
     const isExp   = expandedIds.has(cb.id);
     const dropped = cb.status === "Dropped";
 
-    card.className = `callback-card${dropped ? " dropped" : ""}${isNew ? " is-new" : ""}`;
+    card.className   = `callback-card${dropped ? " dropped" : ""}${isNew ? " is-new" : ""}`;
+    card.dataset.id  = cb.id;
 
-    const statusClass = { Routed: "badge-routed", Dropped: "badge-dropped", Received: "badge-received" }[cb.status] ?? "badge-received";
+    const deliveryHtml = deliveryBadges(cb.status, cb.statusDetail);
 
     const ts = new Date(cb.timestamp).toLocaleTimeString(undefined, {
         hour: "2-digit", minute: "2-digit", second: "2-digit"
@@ -212,22 +227,14 @@ function buildCard(cb, isNew) {
                 <path d="M9 6 L15 12 L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span class="card-ts">${ts}</span>
-            <span class="badge badge-status ${statusClass}">${esc(cb.status)}</span>
-            <span class="badge badge-slug">${esc(cb.slug)}</span>
+            ${deliveryHtml}
             <span class="badge badge-method">${esc(cb.method)}</span>
             <span class="card-path">${esc(cb.subPath || "/")}</span>
             ${relayBadge}
             <span class="card-spacer"></span>
+            ${cb.relay ? `<button class="resend-btn" title="Resend to local agent">&#8635; resend</button>` : ""}
             <span class="card-ip">${esc(cb.sourceIp)}</span>
         </div>
-        ${dropped && cb.statusDetail ? `
-        <div class="card-drop">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none">
-                <path d="M12 8 L12 13 M12 16 L12 16.5" stroke="#ff6b78" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="12" cy="12" r="9" stroke="#ff6b78" stroke-width="1.6"/>
-            </svg>
-            <span>${esc(cb.statusDetail)}</span>
-        </div>` : ""}
         <div class="card-body${isExp ? "" : " hidden"}">
             ${metaRow}
             ${querySection}
@@ -265,6 +272,29 @@ function buildCard(cb, isNew) {
         if (open) expandedIds.add(cb.id);
         else       expandedIds.delete(cb.id);
     });
+
+    const resendBtn = card.querySelector(".resend-btn");
+    if (resendBtn) {
+        resendBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            resendBtn.disabled = true;
+            resendBtn.textContent = "sending…";
+            try {
+                const res = await fetch(`/api/callbacks/${cb.id}/resend`, { method: "POST" });
+                if (res.ok) {
+                    resendBtn.textContent = "✓ sent";
+                } else {
+                    resendBtn.textContent = "failed";
+                }
+            } catch {
+                resendBtn.textContent = "failed";
+            }
+            setTimeout(() => {
+                resendBtn.disabled = false;
+                resendBtn.textContent = "↻ resend";
+            }, 2500);
+        });
+    }
 
     card.querySelector(".copy-btn").addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -393,6 +423,20 @@ function matchesFilter(cb, slug, status, search) {
     return true;
 }
 
+function buildLocalVal(status, detail) {
+    const tip = detail ? ` data-tip="${esc(detail)}"` : "";
+    if (status === "Routed")    return `<span class="del-val del-pending"${tip}>pending</span>`;
+    if (status === "Delivered") return `<span class="del-val del-ok"${tip}>delivered</span>`;
+    if (status === "Dropped")   return `<span class="del-val del-failed"${tip}>failed</span>`;
+    return `<span class="del-val del-disabled">not enabled</span>`;
+}
+
+function deliveryBadges(status, detail) {
+    const web   = `<span class="del-group"><span class="del-label">Web</span><span class="del-val del-ok">received</span></span>`;
+    const local = `<span class="del-group del-local"><span class="del-label">Local</span>${buildLocalVal(status, detail)}</span>`;
+    return web + local;
+}
+
 function syntaxHighlight(json) {
     // Groups: 1=key (includes trailing colon), 2=string value, 3=bool, 4=null, 5=number
     const re = /("(?:[^\\"]|\\.)*"\s*:)|("(?:[^\\"]|\\.)*")|(\btrue\b|\bfalse\b)|(\bnull\b)|(-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g;
@@ -443,6 +487,19 @@ function relTime(isoStr) {
 document.getElementById("search")        .addEventListener("input",  renderCallbacks);
 document.getElementById("filter-slug")   .addEventListener("change", renderCallbacks);
 document.getElementById("filter-status") .addEventListener("change", renderCallbacks);
+// ── Mobile sidebar ─────────────────────────────────────────────────────────────
+(function () {
+    const btn      = document.getElementById("mob-sidebar-btn");
+    const overlay  = document.getElementById("mob-overlay");
+    const explorer = document.querySelector(".explorer");
+    function close() { explorer.classList.remove("is-open"); overlay.classList.remove("is-open"); }
+    btn?.addEventListener("click", () => {
+        const open = explorer.classList.toggle("is-open");
+        overlay.classList.toggle("is-open", open);
+    });
+    overlay?.addEventListener("click", close);
+})();
+
 document.getElementById("clear-btn")     .addEventListener("click",  async () => {
     const res = await fetch("/api/callbacks", { method: "DELETE" });
     if (!res.ok) return;

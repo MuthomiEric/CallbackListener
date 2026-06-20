@@ -29,7 +29,7 @@ case "$ARCH" in
     ;;
 esac
 
-BINARY_URL="$SERVER/downloads/CallbackAgent-linux-$ARCH_SLUG"
+BINARY_URL="$SERVER/downloads/CallbackAgent-linux-$ARCH_SLUG?t=$(date +%s)"
 INSTALL_PATH="/usr/local/bin/CallbackAgent"
 
 echo "Downloading CallbackAgent (linux-$ARCH_SLUG)..."

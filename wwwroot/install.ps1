@@ -21,7 +21,7 @@ $archSlug = switch ($arch) {
     default { Write-Error "Unsupported architecture: $arch. Download manually from $Server/downloads/"; exit 1 }
 }
 
-$binaryUrl  = "$Server/downloads/CallbackAgent-win-$archSlug.exe"
+$binaryUrl  = "$Server/downloads/CallbackAgent-win-$archSlug.exe?t=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
 $installDir = "$env:ProgramData\CallbackAgent"
 $exePath    = "$installDir\CallbackAgent.exe"
 

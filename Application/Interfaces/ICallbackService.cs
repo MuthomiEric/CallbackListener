@@ -5,6 +5,7 @@ namespace CallbackListener.Application.Interfaces;
 public interface ICallbackService
 {
     Task<CallbackEntry> ProcessAsync(CallbackContext context, CancellationToken ct = default);
+    Task<CallbackEntry?> ResendAsync(Guid id, string userId, CancellationToken ct = default);
 }
 
 public sealed record CallbackContext(

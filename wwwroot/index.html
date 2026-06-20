@@ -244,9 +244,14 @@
             text-transform: uppercase; padding: 2px 7px; border: 1px solid;
             font-family: 'JetBrains Mono', monospace;
         }
-        .badge-routed   { color: #4EC9B0; border-color: rgba(78,201,176,0.4); }
-        .badge-dropped  { color: #ffb4ab; border-color: rgba(255,180,171,0.45); }
-        .badge-received { color: #9cdcfe; border-color: rgba(156,220,254,0.45); }
+        /* ── Delivery split badges  [Label | status] ── */
+        .del-group   { display: inline-flex; align-items: center; border: 1px solid #2c3032; flex: none; }
+        .del-label   { font-size: 10px; padding: 2px 7px; background: #1a1c1c; color: #6a7177; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; border-right: 1px solid #2c3032; white-space: nowrap; }
+        .del-val     { font-size: 10px; padding: 2px 7px; font-family: 'JetBrains Mono', monospace; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+        .del-ok       { color: #4EC9B0; }
+        .del-pending  { color: #40484d; }
+        .del-failed   { color: #ffb4ab; }
+        .del-disabled { color: #3a4044; }
 
         .badge-slug {
             font-size: 11px; padding: 2px 7px; border: 1px solid rgba(197,134,192,0.4);
@@ -274,6 +279,26 @@
         .card-ip {
             font-size: 11px; color: #6a7177; font-family: 'JetBrains Mono', monospace;
             white-space: nowrap; flex: none;
+        }
+
+        /* ── Status detail tooltip ──────────────────────────── */
+        [data-tip] { position: relative; cursor: default; }
+        [data-tip]:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e2428;
+            color: #cdd3d7;
+            border: 1px solid #2c3032;
+            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
         }
 
         /* ── Dropped notice ─────────────────────────────────── */
@@ -326,6 +351,16 @@
         .copy-btn:hover  { color: #e2e2e2; border-color: #4a5258; }
         .copy-btn.copied { color: #4EC9B0; border-color: rgba(78,201,176,0.35); }
 
+        .resend-btn {
+            display: flex; align-items: center; gap: 4px;
+            height: 20px; padding: 0 8px; background: transparent;
+            border: 1px solid #2c3032; border-radius: 0; color: #6b7980;
+            font-size: 10px; font-family: inherit; cursor: pointer;
+            transition: color 120ms, border-color 120ms; white-space: nowrap;
+        }
+        .resend-btn:hover:not(:disabled)  { color: #4EC9B0; border-color: rgba(78,201,176,0.4); }
+        .resend-btn:disabled { opacity: 0.55; cursor: default; }
+
         /* ── Empty state ────────────────────────────────────── */
         .empty-state { padding: 60px 16px 0; }
         .empty-state > svg { display: none; }
@@ -339,6 +374,56 @@
             line-height: 22px; text-align: left;
         }
         .empty-sub::before { content: '02  // '; color: #3f4a44; white-space: pre; }
+
+        /* ── Mobile ─────────────────────────────────────────── */
+        .mob-sidebar-btn { display: none; }
+        .mob-overlay     { display: none; }
+
+        @media (max-width: 768px) {
+            /* Sidebar becomes a slide-in drawer */
+            .explorer {
+                display: none; position: fixed;
+                left: 48px; top: 0; bottom: 24px;
+                z-index: 50; width: 240px;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.7);
+            }
+            .explorer.is-open { display: flex; }
+
+            /* Tap-outside overlay */
+            .mob-overlay {
+                display: none; position: fixed; inset: 0;
+                z-index: 49; background: rgba(0,0,0,0.45);
+            }
+            .mob-overlay.is-open { display: block; }
+
+            /* Narrower activity bar */
+            .actbar { width: 48px; }
+
+            /* Hamburger button shown on mobile */
+            .mob-sidebar-btn {
+                display: flex; align-items: center; justify-content: center;
+                width: 28px; height: 24px; background: none; border: none;
+                color: #8a9297; cursor: pointer; padding: 0; flex: none;
+            }
+            .mob-sidebar-btn:hover { color: #c0c8cd; }
+
+            /* Toolbar wraps to two rows */
+            .toolbar { flex-wrap: wrap; padding: 8px 10px; gap: 6px; }
+            .search-wrap { flex: 1 1 100%; width: auto; }
+            #filter-slug, #filter-status { flex: 1; min-width: 0; }
+            .toolbar-spacer { display: none; }
+
+            /* Hide inactive editor tab and split controls */
+            .editor-tab:not(.et-active) { display: none; }
+            .et-actions { display: none; }
+
+            /* Cards */
+            .card-header { padding: 8px 10px; gap: 8px; }
+            .card-ip     { display: none; }
+            .card-body   { margin: 0 0 8px; border-left: none; border-right: none; }
+            .badge-relay { max-width: 140px; }
+
+        }
 
         /* ── Status bar ─────────────────────────────────────── */
         .statusbar {
@@ -446,6 +531,9 @@
 
         <!-- Breadcrumb -->
         <div class="breadcrumb-bar">
+            <button class="mob-sidebar-btn" id="mob-sidebar-btn" title="Toggle explorer">
+                <span class="ms" style="font-size:18px">menu</span>
+            </button>
             <span class="bc-seg">callback-relay</span>
             <span class="ms bc-sep">chevron_right</span>
             <span class="bc-seg bc-active">feed.live</span>
@@ -482,6 +570,8 @@
     </div>
 </div>
 
+<div class="mob-overlay" id="mob-overlay"></div>
+
 <!-- ===== Status bar ===== -->
 <div class="statusbar">
     <div class="sb-item"><span class="ms" style="font-size:14px">account_tree</span><span style="font-size:11px">main</span></div>
@@ -496,6 +586,6 @@
 </div>
 
 <script src="/js/signalr.min.js"></script>
-<script src="/js/app.js"></script>
+<script src="/js/app.js?v=9"></script>
 </body>
 </html>

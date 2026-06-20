@@ -67,6 +67,16 @@ public static class ApiEndpoints
             return Results.NoContent();
         });
 
+        api.MapPost("/callbacks/{id}/resend", async (Guid id, HttpContext ctx, ICallbackService svc, CancellationToken ct) =>
+        {
+            var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            var entry = await svc.ResendAsync(id, userId, ct);
+            return entry is null
+                ? Results.NotFound()
+                : Results.Ok(new { status = entry.Status.ToString(), detail = entry.StatusDetail });
+        });
+
         api.MapGet("/agents", (IAgentRegistry registry) =>
             Results.Ok(registry.GetAll()));
 

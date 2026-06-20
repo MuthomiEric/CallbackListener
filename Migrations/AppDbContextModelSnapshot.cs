@@ -130,7 +130,7 @@ namespace CallbackListener.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Clients");
+                    b.ToTable("Clients", (string)null);
                 });
 
             modelBuilder.Entity("CallbackListener.Domain.Listener", b =>
@@ -183,7 +183,7 @@ namespace CallbackListener.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Listeners");
+                    b.ToTable("Listeners", (string)null);
                 });
 
             modelBuilder.Entity("CallbackListener.Domain.VisitorIp", b =>
@@ -196,7 +196,7 @@ namespace CallbackListener.Migrations
 
                     b.HasKey("IpHash");
 
-                    b.ToTable("VisitorIps");
+                    b.ToTable("VisitorIps", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

@@ -25,6 +25,21 @@ public sealed class CallbackStore : ICallbackStore
         }
     }
 
+    public CallbackEntry? GetById(Guid id, string userId)
+    {
+        lock (_lock)
+        {
+            if (!_byUser.TryGetValue(userId, out var list)) return null;
+            var node = list.First;
+            while (node is not null)
+            {
+                if (node.Value.Id == id) return node.Value;
+                node = node.Next;
+            }
+            return null;
+        }
+    }
+
     public IReadOnlyList<CallbackEntry> GetRecent(int count, string userId)
     {
         lock (_lock)
@@ -40,5 +55,25 @@ public sealed class CallbackStore : ICallbackStore
     {
         lock (_lock)
             _byUser.Remove(userId);
+    }
+
+    public CallbackEntry? UpdateStatus(Guid id, string userId, CallbackStatus status, string? detail, CallbackStatus? onlyIfCurrent = null)
+    {
+        lock (_lock)
+        {
+            if (!_byUser.TryGetValue(userId, out var list)) return null;
+            var node = list.First;
+            while (node is not null)
+            {
+                if (node.Value.Id == id)
+                {
+                    if (onlyIfCurrent.HasValue && node.Value.Status != onlyIfCurrent.Value) return null;
+                    node.Value = node.Value with { Status = status, StatusDetail = detail };
+                    return node.Value;
+                }
+                node = node.Next;
+            }
+            return null;
+        }
     }
 }

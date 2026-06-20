@@ -66,7 +66,7 @@ public sealed class RelayWorker : BackgroundService
             var connection = BuildConnection();
 
             connection.On<RelayEntry>("CallbackReceived", entry =>
-                _ = ForwardAsync(entry, stoppingToken));
+                _ = ForwardAsync(entry, connection, stoppingToken));
 
             connection.On("Shutdown", () =>
             {
@@ -120,19 +120,11 @@ public sealed class RelayWorker : BackgroundService
             .Build();
     }
 
-    private async Task ForwardAsync(RelayEntry entry, CancellationToken ct)
+    private async Task ForwardAsync(RelayEntry entry, HubConnection connection, CancellationToken ct)
     {
-        if (entry.Relay is null)
-        {
-            _logger.LogDebug("Callback {Id} has no relay config — ignoring (display-only)", entry.Id);
-            return;
-        }
+        if (entry.Relay is null) return;
 
         var localUrl = BuildLocalUrl(entry);
-
-        _logger.LogInformation(
-            "← [{Slug}] {Method} {SubPath}  →  {LocalUrl}",
-            entry.Slug, entry.Method, entry.SubPath, localUrl);
 
         try
         {
@@ -142,22 +134,30 @@ public sealed class RelayWorker : BackgroundService
             using var request = BuildRequest(entry, localUrl);
             using var response = await _http.SendAsync(request, timeout.Token);
 
-            _logger.LogInformation(
-                "✓ [{Slug}] {Method} {SubPath}  →  {Status}",
-                entry.Slug, entry.Method, entry.SubPath, (int)response.StatusCode);
+            await ReportResultAsync(connection, entry.Id, null, ct);
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            _logger.LogWarning(
-                "✗ [{Slug}] {Method} {SubPath}  — local service timed out after {Sec}s",
-                entry.Slug, entry.Method, entry.SubPath, _options.LocalTimeoutSeconds);
+            await ReportResultAsync(connection, entry.Id,
+                $"timed out after {_options.LocalTimeoutSeconds}s", ct);
+        }
+        catch (HttpRequestException ex)
+            when (ex.InnerException is System.Net.Sockets.SocketException se
+               && se.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionRefused)
+        {
+            await ReportResultAsync(connection, entry.Id,
+                $"port {entry.Relay.Port} not listening", ct);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex,
-                "✗ [{Slug}] {Method} {SubPath}  — could not reach {LocalUrl}",
-                entry.Slug, entry.Method, entry.SubPath, localUrl);
+            await ReportResultAsync(connection, entry.Id, ex.Message, ct);
         }
+    }
+
+    private static async Task ReportResultAsync(HubConnection connection, Guid id, string? error, CancellationToken ct)
+    {
+        try { await connection.InvokeAsync("ReportDelivery", id, error, ct); }
+        catch { /* connection may be dead — server will keep the entry as-is */ }
     }
 
     private static string BuildLocalUrl(RelayEntry entry)

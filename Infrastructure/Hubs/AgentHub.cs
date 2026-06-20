@@ -16,17 +16,20 @@ public sealed class AgentHub : Hub
 {
     private readonly IAgentRegistry _registry;
     private readonly IHubContext<DashboardHub> _dashboard;
+    private readonly ICallbackStore _store;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AgentHub> _logger;
 
     public AgentHub(
         IAgentRegistry registry,
         IHubContext<DashboardHub> dashboard,
+        ICallbackStore store,
         IServiceScopeFactory scopeFactory,
         ILogger<AgentHub> logger)
     {
         _registry     = registry;
         _dashboard    = dashboard;
+        _store        = store;
         _scopeFactory = scopeFactory;
         _logger       = logger;
     }
@@ -125,5 +128,16 @@ public sealed class AgentHub : Hub
                 agent.LastSeenAt = DateTimeOffset.UtcNow;
         }
         return Task.CompletedTask;
+    }
+
+    public async Task ReportDelivery(Guid id, string? error)
+    {
+        var userId = Context.Items["userId"] as string;
+        if (string.IsNullOrEmpty(userId)) return;
+
+        var status  = error is null ? CallbackStatus.Delivered : CallbackStatus.Dropped;
+        var updated = _store.UpdateStatus(id, userId, status, error);
+        if (updated is not null)
+            await _dashboard.Clients.Group(userId).SendAsync("CallbackUpdated", updated);
     }
 }

@@ -139,6 +139,25 @@
             font-family: 'JetBrains Mono', monospace; font-size: 12px;
         }
 
+        /* ── Mobile ── */
+        @media (max-width: 768px) {
+            html, body { overflow: auto; height: auto; }
+            .vsc-body   { overflow: visible; min-height: 0; }
+            .actbar-ghost, .explorer-ghost { display: none; }
+            .main-area  { overflow: visible; }
+            .editor-content { overflow: visible; }
+            .content-wrap { padding: 24px 16px 50px; }
+            .hero { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 28px; }
+            .hero-title { font-size: 26px; }
+            .hero-sub   { font-size: 13px; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .code-panel { white-space: pre-wrap; word-break: break-all; font-size: 12px; padding: 12px; }
+            .foot-actions { flex-direction: column; align-items: stretch; }
+            .btn-get-started, .btn-sign-in { justify-content: center; }
+            .foot-spacer, .home-badge { display: none; }
+            .tab-getstarted { display: none; }
+        }
+
         /* ── Status bar (blue for landing) ── */
         .statusbar {
             height: 24px; background: #1668c4; color: #ffffff;

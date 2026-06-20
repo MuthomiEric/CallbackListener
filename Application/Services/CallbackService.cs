@@ -1,9 +1,11 @@
 using CallbackListener.Application.Interfaces;
+using CallbackListener.Configuration;
 using CallbackListener.Domain;
 using CallbackListener.Infrastructure.Data;
 using CallbackListener.Infrastructure.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CallbackListener.Application.Services;
 
@@ -16,6 +18,7 @@ public sealed class CallbackService : ICallbackService
     private readonly IHubContext<AgentHub> _agentHub;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<CallbackService> _logger;
+    private readonly int _localTimeoutSeconds;
 
     public CallbackService(
         ICallbackStore store,
@@ -24,15 +27,17 @@ public sealed class CallbackService : ICallbackService
         IHubContext<DashboardHub> dashboard,
         IHubContext<AgentHub> agentHub,
         IServiceScopeFactory scopeFactory,
+        IOptions<AppOptions> options,
         ILogger<CallbackService> logger)
     {
-        _store        = store;
-        _counter      = counter;
-        _registry     = registry;
-        _dashboard    = dashboard;
-        _agentHub     = agentHub;
-        _scopeFactory = scopeFactory;
-        _logger       = logger;
+        _store               = store;
+        _counter             = counter;
+        _registry            = registry;
+        _dashboard           = dashboard;
+        _agentHub            = agentHub;
+        _scopeFactory        = scopeFactory;
+        _logger              = logger;
+        _localTimeoutSeconds = options.Value.LocalDeliveryTimeoutSeconds;
     }
 
     public async Task<CallbackEntry> ProcessAsync(CallbackContext ctx, CancellationToken ct = default)
@@ -81,11 +86,41 @@ public sealed class CallbackService : ICallbackService
                 await _dashboard.Clients.Group(userId).SendAsync("CallbackReceived", entry, ct);
         }
 
+        // If agent was dispatched, auto-fail on dashboard if it doesn't report back in time
+        if (entry.Status == CallbackStatus.Routed && !string.IsNullOrEmpty(userId))
+            _ = AutoFailAsync(entry.Id, userId);
+
         _logger.LogInformation(
             "Callback {Id} [{Status}] — {Method} /collections/callback?slug={Slug} from {Ip}",
             entry.Id, entry.Status, entry.Method, entry.Slug, entry.SourceIp);
 
         return entry;
+    }
+
+    public async Task<CallbackEntry?> ResendAsync(Guid id, string userId, CancellationToken ct = default)
+    {
+        var entry = _store.GetById(id, userId);
+        if (entry is null) return null;
+
+        var routed = await RouteAsync(entry with { Status = CallbackStatus.Received }, DeliveryMode.Both, ct);
+
+        var updated = _store.UpdateStatus(id, userId, routed.Status, routed.StatusDetail);
+        if (updated is not null)
+            await _dashboard.Clients.Group(userId).SendAsync("CallbackUpdated", updated, ct);
+
+        if (routed.Status == CallbackStatus.Routed)
+            _ = AutoFailAsync(id, userId);
+
+        return updated ?? routed;
+    }
+
+    private async Task AutoFailAsync(Guid id, string userId)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(_localTimeoutSeconds));
+        var updated = _store.UpdateStatus(id, userId, CallbackStatus.Dropped,
+            "agent did not respond", onlyIfCurrent: CallbackStatus.Routed);
+        if (updated is not null)
+            await _dashboard.Clients.Group(userId).SendAsync("CallbackUpdated", updated);
     }
 
     private async Task<CallbackEntry> RouteAsync(CallbackEntry entry, DeliveryMode mode, CancellationToken ct)

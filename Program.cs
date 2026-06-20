@@ -207,9 +207,16 @@ mimeProvider.Mappings[".sh"]  = "text/plain";
 mimeProvider.Mappings[".ps1"] = "text/plain";
 app.UseStaticFiles(new StaticFileOptions
 {
-    ContentTypeProvider  = mimeProvider,
-    ServeUnknownFileTypes = true,          // allows extension-less binaries in /downloads/
-    DefaultContentType   = "application/octet-stream",
+    ContentTypeProvider   = mimeProvider,
+    ServeUnknownFileTypes = true,
+    DefaultContentType    = "application/octet-stream",
+    OnPrepareResponse     = ctx =>
+    {
+        // HTML files and agent binaries must never be cached
+        if (ctx.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+            || ctx.Context.Request.Path.StartsWithSegments("/downloads"))
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+    }
 });   // serves wwwroot files before routing touches anything
 app.UseRouting();       // explicit placement so catch-all never races with static files
 app.UseAuthentication();
