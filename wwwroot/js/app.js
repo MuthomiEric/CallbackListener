@@ -194,9 +194,14 @@ function buildCard(cb, isNew) {
 
     const headerEntries = cb.headers ? Object.entries(cb.headers) : [];
     const headersSection = headerEntries.length > 0
-        ? `<div class="card-kv-section">
-               <div class="kv-section-head">headers</div>
-               <div class="kv-grid">${headerEntries.map(([k, v]) =>
+        ? `<div class="card-kv-section hdr-toggle">
+               <div class="kv-section-head hdr-head">
+                   <svg class="hdr-caret" width="9" height="9" viewBox="0 0 24 24" fill="none">
+                       <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                   </svg>
+                   headers <span class="hdr-count">${headerEntries.length}</span>
+               </div>
+               <div class="kv-grid" hidden>${headerEntries.map(([k, v]) =>
                    `<span class="kv-key">${esc(k)}</span><span class="kv-val">${esc(v)}</span>`).join("")}</div>
            </div>`
         : "";
@@ -241,6 +246,18 @@ function buildCard(cb, isNew) {
 
     const header = card.querySelector(".card-header");
     const body   = card.querySelector(".card-body");
+
+    const hdrHead = card.querySelector(".hdr-head");
+    if (hdrHead) {
+        hdrHead.addEventListener("click", e => {
+            e.stopPropagation();
+            const section = hdrHead.closest(".hdr-toggle");
+            const grid    = section.querySelector(".kv-grid");
+            const opening = grid.hasAttribute("hidden");
+            grid.toggleAttribute("hidden", !opening);
+            section.classList.toggle("is-open", opening);
+        });
+    }
 
     header.addEventListener("click", () => {
         const open = body.classList.toggle("hidden") === false;
