@@ -67,6 +67,14 @@ public sealed class AgentHub : Hub
             userId   = client.UserId;
         }
 
+        if (_registry.IsOnline(clientId))
+        {
+            _logger.LogWarning("Agent connection rejected — key already active from another instance ({ClientId}) from {Ip}",
+                clientId, httpContext?.Connection.RemoteIpAddress);
+            Context.Abort();
+            return;
+        }
+
         Context.Items["clientId"] = clientId;
         Context.Items["userId"]   = userId;
 
