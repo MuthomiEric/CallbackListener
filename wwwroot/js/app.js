@@ -181,6 +181,24 @@ function buildCard(cb, isNew) {
             <span>id <span class="mv">${esc(cb.id)}</span></span>
         </div>`;
 
+    const queryEntries = cb.query ? Object.entries(cb.query) : [];
+    const querySection = queryEntries.length > 0
+        ? `<div class="card-kv-section">
+               <div class="kv-section-head">query params</div>
+               <div class="kv-grid">${queryEntries.map(([k, v]) =>
+                   `<span class="kv-key">${esc(k)}</span><span class="kv-val">${esc(v)}</span>`).join("")}</div>
+           </div>`
+        : "";
+
+    const headerEntries = cb.headers ? Object.entries(cb.headers) : [];
+    const headersSection = headerEntries.length > 0
+        ? `<div class="card-kv-section">
+               <div class="kv-section-head">headers</div>
+               <div class="kv-grid">${headerEntries.map(([k, v]) =>
+                   `<span class="kv-key">${esc(k)}</span><span class="kv-val">${esc(v)}</span>`).join("")}</div>
+           </div>`
+        : "";
+
     card.innerHTML = `
         <div class="card-header${isExp ? " is-open" : ""}">
             <svg class="card-caret" width="11" height="11" viewBox="0 0 24 24" fill="none">
@@ -205,6 +223,8 @@ function buildCard(cb, isNew) {
         </div>` : ""}
         <div class="card-body${isExp ? "" : " hidden"}">
             ${metaRow}
+            ${querySection}
+            ${headersSection}
             <div class="pre-wrap">
                 <button class="copy-btn" title="Copy body">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
