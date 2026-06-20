@@ -260,8 +260,8 @@
                     <div class="stat-body"><div class="stat-val" id="s-live">—</div><div class="stat-label">live agents</div></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#C586C0">key</span><span class="stat-key">keys.count</span></div>
-                    <div class="stat-body"><div class="stat-val" id="s-keys">—</div><div class="stat-label">api keys</div></div>
+                    <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#C586C0">bolt</span><span class="stat-key">callbacks.received</span></div>
+                    <div class="stat-body"><div class="stat-val" id="s-callbacks">—</div><div class="stat-label">total callbacks</div></div>
                 </div>
             </div>
 
@@ -272,6 +272,7 @@
                     <span class="th">Joined</span>
                     <span class="th">Apps</span>
                     <span class="th">Keys</span>
+                    <span class="th">Callbacks</span>
                     <span class="th">Agents</span>
                     <span class="th">Last callback</span>
                 </div>
@@ -352,14 +353,14 @@ async function loadUsers() {
 }
 
 function render(users) {
-    const totalApps = users.reduce((s, u) => s + u.appCount, 0);
-    const totalLive = users.filter(u => u.isOnline).length;
-    const totalKeys = users.reduce((s, u) => s + u.keyCount, 0);
+    const totalApps      = users.reduce((s, u) => s + u.appCount, 0);
+    const totalLive      = users.filter(u => u.isOnline).length;
+    const totalCallbacks = users.reduce((s, u) => s + (u.totalCallbacksReceived || 0), 0);
 
-    document.getElementById("s-users").textContent = users.length;
-    document.getElementById("s-apps").textContent  = totalApps;
-    document.getElementById("s-live").textContent  = totalLive;
-    document.getElementById("s-keys").textContent  = totalKeys;
+    document.getElementById("s-users").textContent     = users.length;
+    document.getElementById("s-apps").textContent      = totalApps;
+    document.getElementById("s-live").textContent      = totalLive;
+    document.getElementById("s-callbacks").textContent = totalCallbacks.toLocaleString();
     document.getElementById("user-count-head").textContent = ` · ${users.length} account${users.length !== 1 ? "s" : ""}`;
     document.getElementById("page-sub").textContent = `// SELECT * FROM users — ${users.length} rows`;
     const sbCount = document.getElementById("sb-user-count");
@@ -394,7 +395,8 @@ function render(users) {
             </div>
             <span class="cell-joined">${fmtDate(u.createdAt)}</span>
             <span class="cell-num">${u.appCount}</span>
-            <span class="cell-num">${u.keyCount}</span>
+            <span class="cell-num">${u.clientCount}</span>
+            <span class="cell-num">${(u.totalCallbacksReceived || 0).toLocaleString()}</span>
             <span>${agentCell}</span>
             ${lastCell}
         </div>`;

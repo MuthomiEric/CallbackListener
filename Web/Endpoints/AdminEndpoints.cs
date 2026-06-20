@@ -40,14 +40,15 @@ public static class AdminEndpoints
                 var lastCb   = store.GetRecent(1, u.Id).FirstOrDefault();
                 return new
                 {
-                    id            = u.Id,
-                    email         = u.Email,
-                    displayName   = u.DisplayName,
-                    createdAt     = u.CreatedAt,
-                    appCount      = u.Listeners.Count,
-                    clientCount   = u.Clients.Count,
+                    id                     = u.Id,
+                    email                  = u.Email,
+                    displayName            = u.DisplayName,
+                    createdAt              = u.CreatedAt,
+                    appCount               = u.Listeners.Count,
+                    clientCount            = u.Clients.Count,
+                    totalCallbacksReceived = u.TotalCallbacksReceived,
                     isOnline,
-                    lastCallback  = lastCb?.Timestamp,
+                    lastCallback           = lastCb?.Timestamp,
                 };
             });
 

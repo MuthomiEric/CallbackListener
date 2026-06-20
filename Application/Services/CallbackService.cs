@@ -10,6 +10,7 @@ namespace CallbackListener.Application.Services;
 public sealed class CallbackService : ICallbackService
 {
     private readonly ICallbackStore _store;
+    private readonly ICallbackCounter _counter;
     private readonly IAgentRegistry _registry;
     private readonly IHubContext<DashboardHub> _dashboard;
     private readonly IHubContext<AgentHub> _agentHub;
@@ -18,18 +19,20 @@ public sealed class CallbackService : ICallbackService
 
     public CallbackService(
         ICallbackStore store,
+        ICallbackCounter counter,
         IAgentRegistry registry,
         IHubContext<DashboardHub> dashboard,
         IHubContext<AgentHub> agentHub,
         IServiceScopeFactory scopeFactory,
         ILogger<CallbackService> logger)
     {
-        _store       = store;
-        _registry    = registry;
-        _dashboard   = dashboard;
-        _agentHub    = agentHub;
+        _store        = store;
+        _counter      = counter;
+        _registry     = registry;
+        _dashboard    = dashboard;
+        _agentHub     = agentHub;
         _scopeFactory = scopeFactory;
-        _logger      = logger;
+        _logger       = logger;
     }
 
     public async Task<CallbackEntry> ProcessAsync(CallbackContext ctx, CancellationToken ct = default)
@@ -66,6 +69,9 @@ public sealed class CallbackService : ICallbackService
         };
 
         entry = await RouteAsync(entry, mode, ct);
+
+        if (!string.IsNullOrEmpty(userId))
+            _counter.Increment(userId);
 
         // Local-only mode: agent receives it, web feed does not.
         if (mode != DeliveryMode.Local)

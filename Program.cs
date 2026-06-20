@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Threading.RateLimiting;
 using CallbackListener.Application.Interfaces;
 using CallbackListener.Application.Services;
+using CallbackListener.Infrastructure.Services;
 using CallbackListener.Configuration;
 using CallbackListener.Domain;
 using CallbackListener.Infrastructure.Data;
@@ -73,8 +74,10 @@ builder.Services.AddAuthorization();
 
 // ── Application Services ──────────────────────────────────────────────────────
 builder.Services.AddSingleton<ICallbackStore, CallbackStore>();
+builder.Services.AddSingleton<ICallbackCounter, CallbackCounter>();
 builder.Services.AddSingleton<IAgentRegistry, AgentRegistry>();
 builder.Services.AddSingleton<ICallbackService, CallbackService>();
+builder.Services.AddHostedService<CallbackFlushService>();
 
 // ── SignalR ───────────────────────────────────────────────────────────────────
 builder.Services
