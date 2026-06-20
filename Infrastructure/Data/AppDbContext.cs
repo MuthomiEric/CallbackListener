@@ -6,8 +6,9 @@ namespace CallbackListener.Infrastructure.Data;
 
 public sealed class AppDbContext : IdentityDbContext<AppUser>
 {
-    public DbSet<Listener> Listeners => Set<Listener>();
-    public DbSet<Client> Clients => Set<Client>();
+    public DbSet<Listener>  Listeners  => Set<Listener>();
+    public DbSet<Client>    Clients    => Set<Client>();
+    public DbSet<VisitorIp> VisitorIps => Set<VisitorIp>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -23,6 +24,11 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
              .WithMany(u => u.Clients)
              .HasForeignKey(x => x.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<VisitorIp>(e =>
+        {
+            e.HasKey(x => x.IpHash);
         });
 
         builder.Entity<Listener>(e =>

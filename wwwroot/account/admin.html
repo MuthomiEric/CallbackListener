@@ -106,7 +106,7 @@
         h1 span { color: #6a7177; }
 
         /* ── Stats grid ── */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
         .stat-card { border: 1px solid #2c3032; background: #1a1c1c; transition: border-color 120ms; }
         .stat-card:hover { border-color: #4a5258; }
         .stat-card-head { display: flex; align-items: center; gap: 7px; padding: 8px 12px; background: #0d0e0f; border-bottom: 1px solid #2c3032; }
@@ -260,6 +260,10 @@
                     <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#C586C0">bolt</span><span class="stat-key">callbacks.received</span></div>
                     <div class="stat-body"><div class="stat-val" id="s-callbacks">—</div><div class="stat-label">total callbacks</div></div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-card-head"><span class="ms" style="font-size:15px;color:#DCDCAA">travel_explore</span><span class="stat-key">visitors.unique</span></div>
+                    <div class="stat-body"><div class="stat-val" id="s-visitors">—</div><div class="stat-label">unique visitors</div></div>
+                </div>
             </div>
 
             <div class="table-shell">
@@ -325,7 +329,7 @@ function relTime(iso) {
     document.getElementById("avatar-el").textContent = me.initials;
     document.getElementById("user-menu-email").textContent = me.email;
 
-    await loadUsers();
+    await Promise.all([loadUsers(), loadVisitors()]);
 })();
 
 document.getElementById("avatar-el").addEventListener("click", e => {
@@ -341,6 +345,13 @@ document.getElementById("signout-btn").addEventListener("click", async () => {
     await fetch("/auth/logout", { method: "POST" });
     location.replace("/landing");
 });
+
+async function loadVisitors() {
+    const res = await fetch("/api/admin/visitors");
+    if (!res.ok) return;
+    const { uniqueVisitors } = await res.json();
+    document.getElementById("s-visitors").textContent = uniqueVisitors.toLocaleString();
+}
 
 async function loadUsers() {
     const res = await fetch("/api/admin/users");

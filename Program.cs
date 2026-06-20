@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Threading.RateLimiting;
 using CallbackListener.Application.Interfaces;
 using CallbackListener.Application.Services;
+using CallbackListener.Infrastructure.Security;
 using CallbackListener.Infrastructure.Services;
 using CallbackListener.Configuration;
 using CallbackListener.Domain;
@@ -77,6 +78,7 @@ builder.Services.AddSingleton<ICallbackStore, CallbackStore>();
 builder.Services.AddSingleton<ICallbackCounter, CallbackCounter>();
 builder.Services.AddSingleton<IAgentRegistry, AgentRegistry>();
 builder.Services.AddSingleton<ICallbackService, CallbackService>();
+builder.Services.AddSingleton<IVisitorTracker, VisitorTracker>();
 builder.Services.AddHostedService<CallbackFlushService>();
 
 // ── SignalR ───────────────────────────────────────────────────────────────────
@@ -154,6 +156,32 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
 });
+
+// Track unique visitors — runs early so every page hit is captured.
+// CF-Connecting-IP carries the real client IP through Cloudflare's proxy.
+var visitorTracker = app.Services.GetRequiredService<IVisitorTracker>();
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Method == HttpMethods.Get)
+    {
+        var path = ctx.Request.Path.Value ?? "";
+        if (!path.StartsWith("/api/",   StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/auth/",  StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/hubs/",  StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/fonts/", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/js/",    StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/downloads/", StringComparison.OrdinalIgnoreCase) &&
+            !Path.HasExtension(path))
+        {
+            var ip = ctx.Request.Headers["CF-Connecting-IP"].FirstOrDefault()
+                  ?? ctx.Connection.RemoteIpAddress?.ToString()
+                  ?? "unknown";
+            visitorTracker.Track(ip);
+        }
+    }
+    await next(ctx);
+});
+
 app.UseRateLimiter();
 app.UseDefaultFiles();
 

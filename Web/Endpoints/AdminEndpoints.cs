@@ -14,6 +14,9 @@ public static class AdminEndpoints
     {
         var group = app.MapGroup("/api/admin").RequireAuthorization();
 
+        group.MapGet("/visitors", async (IVisitorTracker tracker) =>
+            Results.Ok(new { uniqueVisitors = await tracker.GetUniqueCountAsync() }));
+
         group.MapGet("/users", async (
             HttpContext ctx,
             AppDbContext db,
